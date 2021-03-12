@@ -67,12 +67,16 @@ class ZK_Driver:
             raise
 
     def run_driver(self):
+        import pdb;pdb.set_trace()
         """The actual logic of the driver program """
         print("Driver::run_driver -- connect with server")
         self.zk.start()
         print(("Driver::run_driver -- state = {}".format(self.zk.state)))
         print("Driver::run_driver -- create a znode for barrier")
-        self.zk.create(self.path, value=b"0")
+        try:
+            self.zk.create(self.path, value=b"0")
+        except:
+            pass
 
         @self.zk.ChildrenWatch(self.path)
         def child_change_watcher(children):
