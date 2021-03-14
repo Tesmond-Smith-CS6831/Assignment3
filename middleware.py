@@ -14,7 +14,6 @@ import zmq
 import threading
 import random
 from kazoo.client import KazooClient
-# from zkbarrier_driver import ZK_BARRIER
 
 ZK_BARRIER = False
 
@@ -55,7 +54,7 @@ class Broker(threading.Thread):
                 self.backend_socket.bind(f"tcp://*:{self.back}")
                 zmq.proxy(self.frontend_socket, self.backend_socket)
 
-                if ZK_BARRIER:
+                if ZK_BARRIER == True:
                     # print(("AppThread {} barrier not reached yet".format(app.name)))
                     # if app.zk.exists(app.ppath):
                     #     value, stat = app.zk.get(app.ppath)
@@ -105,6 +104,9 @@ class Broker(threading.Thread):
             subscriber.socket.setsockopt_string(zmq.SUBSCRIBE, subscriber.zip_code)
         subscriber.message = subscriber.socket.recv_string()
         return subscriber
+
+    def barrier_change(self):
+        ZK_BARRIER = True
 
     def run(self):
         try:

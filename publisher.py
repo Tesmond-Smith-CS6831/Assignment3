@@ -22,6 +22,9 @@ from random import randrange
 import zkbarrier_driver
 import middleware
 
+
+ZK_CONTEXT = None
+
 print("Current libzmq version is %s" % zmq.zmq_version())
 print("Current  pyzmq version is %s" % zmq.__version__)
 
@@ -36,7 +39,6 @@ class Publisher:
 
     def initialize_context(self):
         self.broker = zkbarrier_driver.driver.ret_threads()
-        # self = middleware.universal_broker.register_pub(self)
         self = self.broker.register_pub(self)
 
     def publish(self, how_to_publish):

@@ -10,6 +10,7 @@ from middleware import Broker, ZK_BARRIER
 logging.basicConfig()
 
 
+
 def thread_func(app):
     """A thread function to be executed by the client app threads"""
 
@@ -77,30 +78,33 @@ class ZK_Driver:
                 print(("Driver::child_change_watcher - setting new value for children = {}".format(len(children))))
                 self.zk.set(self.path, bytes(str(len(children)), 'utf-8'))
                 if self.spawn_count == self.numClients:
-                    ZK_BARRIER = True
+                    Broker.barrier_change()
             else:
                 print("Driver:run_driver -- child watcher -- znode does not exist")
 
         print("Driver::run_driver -- start the client app threads")
         thread_args = {'server': self.zkIPAddr, 'port': self.zkPort, 'ppath': self.path, 'cond': self.numClients}
-        # for i in range(self.numClients):
+
         while self.spawn_count < self.numClients:
-            time.sleep(5)
+            time.sleep(3)
             if self.spawn_count == 0:
                 thr_name = "Thread" + str(self.spawn_count)
                 t = Broker(thr_name, thread_args)
                 # t = AppThread(thr_name, thread_func, thread_args)
                 self.threads.append(t)
-                t.start()
                 self.spawn_count += 1
+                t.start()
+                DRIVER_OBJ = self
             else:
                 rnd = random.randint(750,5000)
-                if 750 <= rnd <= 1000:
-                    thr_name = "Thread" + str(i)
+                # if 750 <= rnd <= 1000:
+                if rnd == 2222:
+                    thr_name = "Thread" + str(self.spawn_count)
                     t = Broker(thr_name, thread_args)
                     self.threads.append(t)
+                    self.spawn_count += 1
                     t.start()
-                    self.spawn_count +=1
+                    DRIVER_OBJ = self
 
         print("Driver::run_driver -- wait for the client app threads to terminate")
         for i in range(self.numClients):
@@ -115,6 +119,9 @@ class ZK_Driver:
 
         print("Driver::run_driver -- Bye Bye")
 
+    def get_broker_node(self):
+        return DRIVER_OBJ.threads[0]
+
 
 def parseCmdLineArgs():
     parser = argparse.ArgumentParser()
@@ -126,9 +133,18 @@ def parseCmdLineArgs():
     return args
 
 
-parsed_args = parseCmdLineArgs()
-driver = ZK_Driver(parsed_args)
+# parsed_args = parseCmdLineArgs()
+# driver = ZK_Driver(parsed_args)
+
+
+# DRIVER_OBJ = ZK_Driver(parseCmdLineArgs())
+
 
 if __name__ == '__main__':
+    parsed_args = parseCmdLineArgs()
+    driver = ZK_Driver(parsed_args)
     driver.init_driver()
+    # DRIVER_OBJ = driver
     driver.run_driver()
+
+
