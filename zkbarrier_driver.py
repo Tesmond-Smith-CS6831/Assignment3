@@ -2,10 +2,14 @@ import os
 import sys
 import argparse
 import logging
+import random
 from kazoo.client import KazooClient
-from zkbarrier_app import AppThread
+from middleware import Broker
 
 logging.basicConfig()
+
+
+ZK_BARRIER = False
 
 
 def thread_func(app):
@@ -19,20 +23,6 @@ def thread_func(app):
         if val == app.cond:
             print(("AppThread: {}, barrier is reached".format(app.name)))
 
-    while not app.barrier:
-        print(("AppThread {} barrier not reached yet".format(app.name)))
-        if app.zk.exists(app.ppath):
-            value, stat = app.zk.get(app.ppath)
-            print(("AppThread {} found parent znode value = {}, stat = {}".format(app.name, value, stat)))
-        else:
-            print(("{} znode does not exist yet (strange)".format(app.ppath)))
-
-    print(("AppThread {} has reached the barrier and so we disconnect from zookeeper".format(app.name)))
-    app.zk.stop()
-    app.zk.close()
-
-    print(("AppThread {}: Bye Bye ".format(app.name)))
-
 
 class ZK_Driver:
     """ The ZooKeeper Driver Class """
@@ -44,6 +34,7 @@ class ZK_Driver:
         self.zk = None
         self.path = "/barrier"
         self.threads = []
+        self.spawn_count = 0
 
     def dump(self):
         """dump contents"""
@@ -66,8 +57,10 @@ class ZK_Driver:
             print("Unexpected error in init_driver:", sys.exc_info()[0])
             raise
 
+    def ret_threads(self):
+        return self.threads[0]
+
     def run_driver(self):
-        import pdb;pdb.set_trace()
         """The actual logic of the driver program """
         print("Driver::run_driver -- connect with server")
         self.zk.start()
@@ -85,17 +78,30 @@ class ZK_Driver:
             if self.zk.exists(self.path):
                 print(("Driver::child_change_watcher - setting new value for children = {}".format(len(children))))
                 self.zk.set(self.path, bytes(str(len(children)), 'utf-8'))
+                if self.spawn_count == self.numClients:
+                    ZK_BARRIER = True
             else:
                 print("Driver:run_driver -- child watcher -- znode does not exist")
 
         print("Driver::run_driver -- start the client app threads")
         thread_args = {'server': self.zkIPAddr, 'port': self.zkPort, 'ppath': self.path, 'cond': self.numClients}
-
-        for i in range(self.numClients):
-            thr_name = "Thread" + str(i)
-            t = AppThread(thr_name, thread_func, thread_args)
-            self.threads.append(t)
-            t.start()
+        # for i in range(self.numClients):
+        while self.spawn_count < self.numClients:
+            if self.spawn_count == 0:
+                thr_name = "Thread" + str(i)
+                t = Broker(thr_name, thread_args)
+                # t = AppThread(thr_name, thread_func, thread_args)
+                self.threads.append(t)
+                t.start()
+                self.spawn_count += 1
+            else:
+                rnd = random.randint(750,5000)
+                if 750 <= rnd <= 1000:
+                    thr_name = "Thread" + str(i)
+                    t = Broker(thr_name, thread_args)
+                    self.threads.append(t)
+                    t.start()
+                    self.spawn_count +=1
 
         print("Driver::run_driver -- wait for the client app threads to terminate")
         for i in range(self.numClients):
@@ -121,14 +127,8 @@ def parseCmdLineArgs():
     return args
 
 
-def main():
-    """ Main program """
-    print("Demo program for ZooKeeper-based Barrier Sync")
+if __name__ == '__main__':
     parsed_args = parseCmdLineArgs()
     driver = ZK_Driver(parsed_args)
     driver.init_driver()
     driver.run_driver()
-
-
-if __name__ == '__main__':
-    main()
