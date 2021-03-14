@@ -16,6 +16,7 @@ import random
 from kazoo.client import KazooClient
 
 ZK_BARRIER = False
+# THREAD = None
 
 
 class Broker(threading.Thread):
@@ -130,6 +131,11 @@ class Broker(threading.Thread):
         except:
             print("Unexpected error in AppThread::run", sys.exc_info()[0])
             raise
+
+
+# def set_broker_node(broker_obj):
+#     import pdb;pdb.set_trace()
+#     THREAD = broker_obj
 #
 #
 #
