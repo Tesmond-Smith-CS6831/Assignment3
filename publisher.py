@@ -19,11 +19,13 @@ import sys
 import zmq
 import datetime
 from random import randrange
+# import middleware
 import zkbarrier_driver
-import middleware
 
 
 ZK_CONTEXT = None
+BROKER ='hi'
+
 
 print("Current libzmq version is %s" % zmq.zmq_version())
 print("Current  pyzmq version is %s" % zmq.__version__)
@@ -38,7 +40,7 @@ class Publisher:
         self.broker = None
 
     def initialize_context(self):
-        self.broker = zkbarrier_driver.driver.ret_threads()
+        self.broker = zkbarrier_driver.get_thread()
         self = self.broker.register_pub(self)
 
     def publish(self, how_to_publish):
@@ -59,6 +61,8 @@ class Publisher:
                 concat_message = str(zipcode) + "," + str(temperature) + "," + date_time
                 # self.socket.send_string("{},{},{}".format(zipcode, temperature, date_time))
                 self.broker.pub_send(self, concat_message)
+
+
 
 
 if __name__ == "__main__":

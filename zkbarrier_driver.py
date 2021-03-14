@@ -9,7 +9,7 @@ from middleware import Broker, ZK_BARRIER
 
 logging.basicConfig()
 
-
+THREAD = []
 
 def thread_func(app):
     """A thread function to be executed by the client app threads"""
@@ -90,11 +90,10 @@ class ZK_Driver:
             if self.spawn_count == 0:
                 thr_name = "Thread" + str(self.spawn_count)
                 t = Broker(thr_name, thread_args)
-                # t = AppThread(thr_name, thread_func, thread_args)
                 self.threads.append(t)
+                set_threads(t)
                 self.spawn_count += 1
                 t.start()
-                DRIVER_OBJ = self
             else:
                 rnd = random.randint(750,5000)
                 # if 750 <= rnd <= 1000:
@@ -102,9 +101,9 @@ class ZK_Driver:
                     thr_name = "Thread" + str(self.spawn_count)
                     t = Broker(thr_name, thread_args)
                     self.threads.append(t)
+                    set_threads(t)
                     self.spawn_count += 1
                     t.start()
-                    DRIVER_OBJ = self
 
         print("Driver::run_driver -- wait for the client app threads to terminate")
         for i in range(self.numClients):
@@ -119,8 +118,11 @@ class ZK_Driver:
 
         print("Driver::run_driver -- Bye Bye")
 
-    def get_broker_node(self):
-        return DRIVER_OBJ.threads[0]
+def set_threads(thread):
+    THREAD.append(thread)
+
+def get_thread():
+    return THREAD[0]
 
 
 def parseCmdLineArgs():
