@@ -33,9 +33,6 @@ class Publisher:
         self.zip_code = zipcode
 
     def initialize_context(self):
-        # self.context = zmq.Context()
-        # self.socket = self.context.socket(zmq.PUB)
-        # self.socket.connect(f"tcp://{self.host}:{self.port}")
         self = middleware.universal_broker.register_pub(self)
 
     def publish(self, how_to_publish):

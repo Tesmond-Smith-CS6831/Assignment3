@@ -17,12 +17,7 @@ class Subscriber:
         self.socket = None
         self.output = []
 
-
     def create_context(self):
-        # self.context = zmq.Context()
-        # self.socket = self.context.socket(zmq.SUB)
-        # self.socket.connect(f"tcp://{self.address}:{self.port}")
-        # self.socket.setsockopt_string(zmq.SUBSCRIBE, self.zip_code)
         self = middleware.universal_broker.register_sub(self)
 
     def get_message(self):
