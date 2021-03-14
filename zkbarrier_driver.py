@@ -1,15 +1,13 @@
 import os
 import sys
 import argparse
+import time
 import logging
 import random
 from kazoo.client import KazooClient
-from middleware import Broker
+from middleware import Broker, ZK_BARRIER
 
 logging.basicConfig()
-
-
-ZK_BARRIER = False
 
 
 def thread_func(app):
@@ -87,8 +85,9 @@ class ZK_Driver:
         thread_args = {'server': self.zkIPAddr, 'port': self.zkPort, 'ppath': self.path, 'cond': self.numClients}
         # for i in range(self.numClients):
         while self.spawn_count < self.numClients:
+            time.sleep(5)
             if self.spawn_count == 0:
-                thr_name = "Thread" + str(i)
+                thr_name = "Thread" + str(self.spawn_count)
                 t = Broker(thr_name, thread_args)
                 # t = AppThread(thr_name, thread_func, thread_args)
                 self.threads.append(t)
@@ -127,8 +126,9 @@ def parseCmdLineArgs():
     return args
 
 
+parsed_args = parseCmdLineArgs()
+driver = ZK_Driver(parsed_args)
+
 if __name__ == '__main__':
-    parsed_args = parseCmdLineArgs()
-    driver = ZK_Driver(parsed_args)
     driver.init_driver()
     driver.run_driver()

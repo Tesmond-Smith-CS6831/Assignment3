@@ -19,6 +19,7 @@ import sys
 import zmq
 import datetime
 from random import randrange
+import zkbarrier_driver
 import middleware
 
 print("Current libzmq version is %s" % zmq.zmq_version())
@@ -31,9 +32,12 @@ class Publisher:
         self.port = port_to_bind
         self.host = host
         self.zip_code = zipcode
+        self.broker = None
 
     def initialize_context(self):
-        self = middleware.universal_broker.register_pub(self)
+        self.broker = zkbarrier_driver.driver.ret_threads()
+        # self = middleware.universal_broker.register_pub(self)
+        self = self.broker.register_pub(self)
 
     def publish(self, how_to_publish):
         if how_to_publish == 1:
@@ -43,7 +47,7 @@ class Publisher:
                 date_time = datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S.%f")
                 concat_message = str(zipcode) + "," + str(temperature) + "," + date_time
                 # self.socket.send_string("{},{},{}".format(zipcode, temperature, date_time))
-                middleware.universal_broker.pub_send(self, concat_message, how_to_publish)
+                self.broker.pub_send(self, concat_message, how_to_publish)
 
         else:
             while True:
@@ -52,7 +56,7 @@ class Publisher:
                 date_time = datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S.%f")
                 concat_message = str(zipcode) + "," + str(temperature) + "," + date_time
                 # self.socket.send_string("{},{},{}".format(zipcode, temperature, date_time))
-                middleware.universal_broker.pub_send(self, concat_message)
+                self.broker.pub_send(self, concat_message)
 
 
 if __name__ == "__main__":

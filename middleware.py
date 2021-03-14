@@ -14,7 +14,9 @@ import zmq
 import threading
 import random
 from kazoo.client import KazooClient
-from zkbarrier_driver import ZK_BARRIER
+# from zkbarrier_driver import ZK_BARRIER
+
+ZK_BARRIER = False
 
 
 class Broker(threading.Thread):
@@ -75,7 +77,7 @@ class Broker(threading.Thread):
     def register_pub(self, publisher):
         publisher.context = zmq.Context()
         publisher.socket = publisher.context.socket(zmq.PUB)
-        publisher.socket.connect(f"tcp://{publisher.host}:{publisher.port}")
+        publisher.socket.connect(f"tcp://{self.zkIPAddr}:{self.front}")
         return publisher
 
     def pub_send(self, publisher, message, proxy = 2):
@@ -84,23 +86,22 @@ class Broker(threading.Thread):
         if proxy == 1:
             publisher.socket.send_string("{},{},{}".format(zipcode, temperature, date_time))
         else:
-            self.tempPubPort = int(publisher.port) + 1
+            self.tempPubPort = self.front + 1
             publisher.socket.connect(f"tcp://{publisher.host}:{self.tempPubPort}")
             publisher.socket.send_string("{},{},{}".format(zipcode, temperature, date_time))
 
     def register_sub(self, subscriber):
         subscriber.context = zmq.Context()
         subscriber.socket = subscriber.context.socket(zmq.SUB)
-        subscriber.socket.connect(f"tcp://{subscriber.address}:{subscriber.port}")
+        subscriber.socket.connect(f"tcp://{self.zkIPAddr}:{self.back}")
         subscriber.socket.setsockopt_string(zmq.SUBSCRIBE, subscriber.zip_code)
         return subscriber
 
     def filter_message(self, subscriber):
         if self.proxy == 2:
-            subscriber.socket.connect(f"tcp://{subscriber.address}:{self.tempPubPort}")
+            subscriber.socket.connect(f"tcp://{self.zkIPAddr}:{self.tempPubPort}")
             subscriber.socket.setsockopt_string(zmq.SUBSCRIBE, subscriber.zip_code)
         else:
-            subscriber.socket.setsockopt_string(zmq.SUBSCRIBE, subscriber.zip_code)
             subscriber.socket.setsockopt_string(zmq.SUBSCRIBE, subscriber.zip_code)
         subscriber.message = subscriber.socket.recv_string()
         return subscriber
