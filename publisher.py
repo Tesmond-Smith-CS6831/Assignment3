@@ -44,7 +44,7 @@ class Publisher:
                 zipcode = randrange(1, 100000)
                 temperature = randrange(-80, 135)
                 date_time = datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S.%f")
-                concat_message = zipcode + "," + temperature + "," + date_time
+                concat_message = str(zipcode) + "," + str(temperature) + "," + date_time
                 # self.socket.send_string("{},{},{}".format(zipcode, temperature, date_time))
                 middleware.universal_broker.pub_send(self, concat_message, how_to_publish)
 
@@ -53,7 +53,7 @@ class Publisher:
                 zipcode = self.zip_code
                 temperature = randrange(-80, 135)
                 date_time = datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S.%f")
-                concat_message = zipcode + "," + temperature + "," + date_time
+                concat_message = str(zipcode) + "," + str(temperature) + "," + date_time
                 # self.socket.send_string("{},{},{}".format(zipcode, temperature, date_time))
                 middleware.universal_broker.pub_send(self, concat_message)
 
