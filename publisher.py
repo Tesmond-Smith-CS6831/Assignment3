@@ -19,6 +19,7 @@ import sys
 import zmq
 import datetime
 from random import randrange
+import middleware
 
 print("Current libzmq version is %s" % zmq.zmq_version())
 print("Current  pyzmq version is %s" % zmq.__version__)
@@ -32,9 +33,7 @@ class Publisher:
         self.zip_code = zipcode
 
     def initialize_context(self):
-        self.context = zmq.Context()
-        self.socket = self.context.socket(zmq.PUB)
-        self.socket.connect(f"tcp://{self.host}:{self.port}")
+        self = middleware.universal_broker.register_pub(self)
 
     def publish(self, how_to_publish):
         if how_to_publish == 1:
@@ -42,13 +41,18 @@ class Publisher:
                 zipcode = randrange(1, 100000)
                 temperature = randrange(-80, 135)
                 date_time = datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S.%f")
-                self.socket.send_string("{},{},{}".format(zipcode, temperature, date_time))
+                concat_message = str(zipcode) + "," + str(temperature) + "," + date_time
+                # self.socket.send_string("{},{},{}".format(zipcode, temperature, date_time))
+                middleware.universal_broker.pub_send(self, concat_message, how_to_publish)
+
         else:
             while True:
                 zipcode = self.zip_code
                 temperature = randrange(-80, 135)
                 date_time = datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S.%f")
-                self.socket.send_string("{},{},{}".format(zipcode, temperature, date_time))
+                concat_message = str(zipcode) + "," + str(temperature) + "," + date_time
+                # self.socket.send_string("{},{},{}".format(zipcode, temperature, date_time))
+                middleware.universal_broker.pub_send(self, concat_message)
 
 
 if __name__ == "__main__":

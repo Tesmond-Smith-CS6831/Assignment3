@@ -123,7 +123,6 @@ def parseCmdLineArgs():
 
 def main():
     """ Main program """
-
     print("Demo program for ZooKeeper-based Barrier Sync")
     parsed_args = parseCmdLineArgs()
     driver = ZK_Driver(parsed_args)
