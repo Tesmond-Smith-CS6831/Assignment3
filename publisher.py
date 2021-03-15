@@ -17,10 +17,9 @@ class Publisher:
         self.zookeeper.start()
 
     def initialize_context(self):
-        self.socket = register_pub(self)
+        self.socket = register_pub()
 
     def validate_zk_connection(self):
-        # import pdb;pdb.set_trace()
         up_status = False
         if self.zookeeper.exists(self.zk_path):
             up_status = True
@@ -69,10 +68,9 @@ class Publisher:
 
 
 if __name__ == "__main__":
-    print("Sysarg 1. Ip Address, 2. Port number, 3. Publisher functionality (i.e. 1. publish multiple topics, "
+    print("Sysarg 1. Ip Address, 2. Publisher functionality (i.e. 1. publish multiple topics, "
           "2. publish a singular topic: if 2 is selected enter zip code")
     address = sys.argv[1] if len(sys.argv) > 1 else "localhost"
-    # port_to_bind = sys.argv[2] if len(sys.argv) > 2 else "6663"
     how_to_publish = sys.argv[2] if len(sys.argv) > 2 else 1
     topic = sys.argv[3] if len(sys.argv) > 3 else "10001"
     publisher = Publisher(address, topic)

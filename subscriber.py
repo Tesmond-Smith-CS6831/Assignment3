@@ -1,13 +1,14 @@
 import sys
-import zmq
 import datetime
 import middleware
+from utility_funcs import register_sub, filter_message
+from kazoo.client import KazooClient
 
 
 class Subscriber:
-    def __init__(self, address, port, topic, time_to_listen):
+    def __init__(self, address, topic, time_to_listen):
         self.address = address
-        self.port = port
+        self.port = None
         self.total_temp = 0
         self.zip_code = topic
         self.total_times_to_listen = int(time_to_listen)
@@ -16,18 +17,36 @@ class Subscriber:
         self.context = None
         self.socket = None
         self.output = []
-
+        self.zookeeper = KazooClient(hosts='127.0.0.1:2181')
+        self.zk_path = '/leader/leadNode'
+        self.zookeeper.start()
 
     def create_context(self):
-        # self.context = zmq.Context()
-        # self.socket = self.context.socket(zmq.SUB)
-        # self.socket.connect(f"tcp://{self.address}:{self.port}")
-        # self.socket.setsockopt_string(zmq.SUBSCRIBE, self.zip_code)
-        self = middleware.universal_broker.register_sub(self)
+        self = register_sub(self)
+
+    def validate_zk_connection(self):
+        up_status = False
+        if self.zookeeper.exists(self.zk_path):
+            up_status = True
+
+        if up_status:
+            data, stat = self.zookeeper.get(self.zk_path)
+            self.port = data.decode('utf-8').split(',')[1]
+            print("ZK node connected")
+        else:
+            print("ZK not available")
 
     def get_message(self):
+        print("Pulling data from: tcp://{}:{}".format(self.address, self.port))
         for x in range(self.total_times_to_listen):
-            self = middleware.universal_broker.filter_message(self)
+            @self.zookeeper.DataWatch(self.zk_path)
+            def watch_node(data, stat, event):
+                if not event:
+                    data, stat = self.zookeeper.get(self.zk_path)
+                    self.port = data.decode('utf-8').split(',')[1]
+                    conn_str = "tcp://" + self.address + ":" + self.port
+                    self.socket.connect(conn_str)
+            self = filter_message(self)
             zipcode, temperature, sent_time = self.message.split(',')
             self.total_temp += int(temperature)
             self.listen_counter += 1
@@ -43,13 +62,13 @@ class Subscriber:
 
 
 if __name__ == "__main__":
-    print("Sysarg 1. Ip address, 2. zip code, 3. port to connect")
+    print("Sysarg 1. Ip address, 2. zip code")
     address_type = sys.argv[1] if len(sys.argv) > 1 else "localhost"
     topic = sys.argv[2] if len(sys.argv) > 2 else "10001"
-    socket_port = sys.argv[3] if len(sys.argv) > 3 else "5556"
-    times_to_listen = sys.argv[4] if len(sys.argv) > 4 else 10
+    times_to_listen = sys.argv[3] if len(sys.argv) > 3 else 10
     print(topic)
-    sub = Subscriber(address_type, socket_port, topic, times_to_listen)
+    sub = Subscriber(address_type, topic, times_to_listen)
+    sub.validate_zk_connection()
     sub.create_context()
     sub.get_message()
     print("Message Touch Times: {}".format(sub.output))

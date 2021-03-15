@@ -17,8 +17,6 @@ from kazoo.client import KazooClient
 class Broker:
 
     def __init__(self):
-        # self.front = frontend_port
-        # self.back = backend_port
         self.frontend_socket = None
         self.backend_socket = None
         self.context = None
@@ -76,43 +74,9 @@ class Broker:
         self.backend_socket.bind(f"tcp://*:{leader_connection_addr[1]}")
         zmq.proxy(self.frontend_socket, self.backend_socket)
 
-    # def register_pub(self, publisher):
-    #     publisher.context = zmq.Context()
-    #     publisher.socket = publisher.context.socket(zmq.PUB)
-    #     publisher.socket.connect(f"tcp://{publisher.host}:{publisher.port}")
-    #     return publisher
-    #
-    # def pub_send(self, publisher, message, proxy = 2):
-    #     zipcode, temperature, date_time = message.split(',')
-    #     self.proxy = proxy
-    #     if proxy == 1:
-    #         publisher.socket.send_string("{},{},{}".format(zipcode, temperature, date_time))
-    #     else:
-    #         self.tempPubPort = int(publisher.port) + 1
-    #         publisher.socket.connect(f"tcp://{publisher.host}:{self.tempPubPort}")
-    #         publisher.socket.send_string("{},{},{}".format(zipcode, temperature, date_time))
-
-    def register_sub(self, subscriber):
-        subscriber.context = zmq.Context()
-        subscriber.socket = subscriber.context.socket(zmq.SUB)
-        subscriber.socket.connect(f"tcp://{subscriber.address}:{subscriber.port}")
-        subscriber.socket.setsockopt_string(zmq.SUBSCRIBE, subscriber.zip_code)
-        return subscriber
-
-    def filter_message(self, subscriber):
-        if self.proxy == 2:
-            subscriber.socket.connect(f"tcp://{subscriber.address}:{self.tempPubPort}")
-            subscriber.socket.setsockopt_string(zmq.SUBSCRIBE, subscriber.zip_code)
-        else:
-            subscriber.socket.setsockopt_string(zmq.SUBSCRIBE, subscriber.zip_code)
-            subscriber.socket.setsockopt_string(zmq.SUBSCRIBE, subscriber.zip_code)
-        subscriber.message = subscriber.socket.recv_string()
-        return subscriber
-
 
 if __name__ == "__main__":
     broker = Broker()
     broker.gen_nodes()
     broker.set_leader()
     broker.establish_broker()
-    # universal_broker.establish_broker()
