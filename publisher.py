@@ -11,36 +11,37 @@ class Publisher:
         self.socket = None
         self.port = port_to_bind
         self.host = host
+        self.zip_code = zipcode
         self.zookeeper = KazooClient(hosts='127.0.0.1:2181')
         self.zk_path = '/nodes'
         self.zookeeper.start()
-        self.zip_code = zipcode
 
-    def initialize_context(self, pub_obj):
-        self.socket = register_pub(pub_obj)
+    def initialize_context(self):
+        self.socket = register_pub(self)
 
     def validate_zk_connection(self):
         up_status = False
-        @self.zk_object.DataWatch(self.zk_path)
+        @self.zookeeper.DataWatch(self.zk_path)
         def watch_node(data, stat, event):
             if not event:
-                data, stat = self.zookeeper.get(self.path)
+                data, stat = self.zookeeper.get(self.zk_path)
                 up_status = True
         if up_status:
             data, stat = self.zookeeper.get(self.path)
             address = data.split(",")
             conn_str = "tcp://" + self.host + ":" + address[0]
             self.socket.connect(conn_str)
+            print("ZK node connected")
         else:
             print("ZK not available")
 
     def publish(self, how_to_publish):
         if how_to_publish == 1:
             while True:
-                @self.zk_object.DataWatch(self.path)
+                @self.zookeeper.DataWatch(self.zk_path)
                 def watch_node(data, stat, event):
                     if not event:
-                        data, stat = self.zookeeper.get(self.path)
+                        data, stat = self.zookeeper.get(self.zk_path)
                         address = data.split(",")
                         conn_str = "tcp://" + self.host + ":" + address[0]
                         self.socket.connect(conn_str)
@@ -49,14 +50,14 @@ class Publisher:
                 date_time = datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S.%f")
                 concat_message = str(zipcode) + "," + str(temperature) + "," + date_time
                 # self.socket.send_string("{},{},{}".format(zipcode, temperature, date_time))
-                utility_funcs.pub_send(self, concat_message, how_to_publish)
+                pub_send(self, concat_message, how_to_publish)
 
         else:
             while True:
-                @self.zk_object.DataWatch(self.path)
+                @self.zookeeper.DataWatch(self.zk_path)
                 def watch_node(data, stat, event):
                     if not event:
-                        data, stat = self.zookeeper.get(self.path)
+                        data, stat = self.zookeeper.get(self.zk_path)
                         address = data.split(",")
                         conn_str = "tcp://" + self.host + ":" + address[0]
                         self.socket.connect(conn_str)
@@ -65,7 +66,7 @@ class Publisher:
                 date_time = datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S.%f")
                 concat_message = str(zipcode) + "," + str(temperature) + "," + date_time
                 # self.socket.send_string("{},{},{}".format(zipcode, temperature, date_time))
-                utility_funcs.pub_send(self, concat_message)
+                pub_send(self, concat_message)
 
 
 if __name__ == "__main__":

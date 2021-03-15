@@ -4,7 +4,6 @@ import zmq
 def register_pub(publisher_obj):
     publisher_context = zmq.Context()
     publisher_socket = publisher_context.socket(zmq.PUB)
-    # publisher.socket.connect(f"tcp://{publisher.host}:{publisher.port}")
     return publisher_socket
 
 
