@@ -59,11 +59,11 @@ class Broker:
             self.leader = self.zookeeper.get("{}node{}".format(self.zk_path, _nv))
         print("New leader node: {}".format(self.leader))
         leader_path = "{}{}".format(self.zk_leader_path, "leadNode")
+
         if self.zookeeper.exists(leader_path):
             self.zookeeper.delete(leader_path)
         self.zookeeper.ensure_path(leader_path)
-        self.zookeeper.set(leader_path,self.leader[0])
-
+        self.zookeeper.set(leader_path, self.leader[0])
 
     def establish_broker(self):
         leader_connection_addr = self.leader[0].decode('utf-8').split(',')
