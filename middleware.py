@@ -33,21 +33,21 @@ class Broker:
             self.backend_socket.bind(f"tcp://*:{self.back}")
             zmq.proxy(self.frontend_socket, self.backend_socket)
 
-    def register_pub(self, publisher):
-        publisher.context = zmq.Context()
-        publisher.socket = publisher.context.socket(zmq.PUB)
-        publisher.socket.connect(f"tcp://{publisher.host}:{publisher.port}")
-        return publisher
-
-    def pub_send(self, publisher, message, proxy = 2):
-        zipcode, temperature, date_time = message.split(',')
-        self.proxy = proxy
-        if proxy == 1:
-            publisher.socket.send_string("{},{},{}".format(zipcode, temperature, date_time))
-        else:
-            self.tempPubPort = int(publisher.port) + 1
-            publisher.socket.connect(f"tcp://{publisher.host}:{self.tempPubPort}")
-            publisher.socket.send_string("{},{},{}".format(zipcode, temperature, date_time))
+    # def register_pub(self, publisher):
+    #     publisher.context = zmq.Context()
+    #     publisher.socket = publisher.context.socket(zmq.PUB)
+    #     publisher.socket.connect(f"tcp://{publisher.host}:{publisher.port}")
+    #     return publisher
+    #
+    # def pub_send(self, publisher, message, proxy = 2):
+    #     zipcode, temperature, date_time = message.split(',')
+    #     self.proxy = proxy
+    #     if proxy == 1:
+    #         publisher.socket.send_string("{},{},{}".format(zipcode, temperature, date_time))
+    #     else:
+    #         self.tempPubPort = int(publisher.port) + 1
+    #         publisher.socket.connect(f"tcp://{publisher.host}:{self.tempPubPort}")
+    #         publisher.socket.send_string("{},{},{}".format(zipcode, temperature, date_time))
 
     def register_sub(self, subscriber):
         subscriber.context = zmq.Context()

@@ -1,61 +1,71 @@
-# Sample code for CS6381
-# Vanderbilt University
-# Instructor: Aniruddha Gokhale
-#
-# Code taken from ZeroMQ examples with additional
-# comments or extra statements added to make the code
-# more self-explanatory  or tweak it for our purposes
-#
-# We are executing these samples on a Mininet-emulated environment
-#
-#
-
-#
-#   Weather update server
-#   Binds PUB socket to tcp://*:6663 or whatever system input socket is
-#   Publishes random weather updates
-#
 import sys
-import zmq
 import datetime
 from random import randrange
+from utility_funcs import register_pub, pub_send
+from kazoo.client import KazooClient
 import middleware
 
-print("Current libzmq version is %s" % zmq.zmq_version())
-print("Current  pyzmq version is %s" % zmq.__version__)
 
 class Publisher:
     def __init__(self, port_to_bind, host, zipcode):
-        self.context = None
         self.socket = None
         self.port = port_to_bind
         self.host = host
+        self.zookeeper = KazooClient(hosts='127.0.0.1:2181')
+        self.zk_path = '/nodes'
+        self.zookeeper.start()
         self.zip_code = zipcode
 
-    def initialize_context(self):
-        # self.context = zmq.Context()
-        # self.socket = self.context.socket(zmq.PUB)
-        # self.socket.connect(f"tcp://{self.host}:{self.port}")
-        self = middleware.universal_broker.register_pub(self)
+    def initialize_context(self, pub_obj):
+        self.socket = register_pub(pub_obj)
+
+    def validate_zk_connection(self):
+        up_status = False
+        @self.zk_object.DataWatch(self.zk_path)
+        def watch_node(data, stat, event):
+            if not event:
+                data, stat = self.zookeeper.get(self.path)
+                up_status = True
+        if up_status:
+            data, stat = self.zookeeper.get(self.path)
+            address = data.split(",")
+            conn_str = "tcp://" + self.host + ":" + address[0]
+            self.socket.connect(conn_str)
+        else:
+            print("ZK not available")
 
     def publish(self, how_to_publish):
         if how_to_publish == 1:
             while True:
+                @self.zk_object.DataWatch(self.path)
+                def watch_node(data, stat, event):
+                    if not event:
+                        data, stat = self.zookeeper.get(self.path)
+                        address = data.split(",")
+                        conn_str = "tcp://" + self.host + ":" + address[0]
+                        self.socket.connect(conn_str)
                 zipcode = randrange(1, 100000)
                 temperature = randrange(-80, 135)
                 date_time = datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S.%f")
                 concat_message = str(zipcode) + "," + str(temperature) + "," + date_time
                 # self.socket.send_string("{},{},{}".format(zipcode, temperature, date_time))
-                middleware.universal_broker.pub_send(self, concat_message, how_to_publish)
+                utility_funcs.pub_send(self, concat_message, how_to_publish)
 
         else:
             while True:
+                @self.zk_object.DataWatch(self.path)
+                def watch_node(data, stat, event):
+                    if not event:
+                        data, stat = self.zookeeper.get(self.path)
+                        address = data.split(",")
+                        conn_str = "tcp://" + self.host + ":" + address[0]
+                        self.socket.connect(conn_str)
                 zipcode = self.zip_code
                 temperature = randrange(-80, 135)
                 date_time = datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S.%f")
                 concat_message = str(zipcode) + "," + str(temperature) + "," + date_time
                 # self.socket.send_string("{},{},{}".format(zipcode, temperature, date_time))
-                middleware.universal_broker.pub_send(self, concat_message)
+                utility_funcs.pub_send(self, concat_message)
 
 
 if __name__ == "__main__":
@@ -67,6 +77,7 @@ if __name__ == "__main__":
     topic = sys.argv[4] if len(sys.argv) > 4 else "10001"
     publisher = Publisher(port_to_bind, address, topic)
     publisher.initialize_context()
+    publisher.validate_zk_connection()
     publisher.publish(how_to_publish)
 
 
