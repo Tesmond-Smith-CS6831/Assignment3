@@ -56,14 +56,11 @@ class Broker:
         gen_leader = self.zookeeper.Election(self.zk_path, "leader").contenders()
         if gen_leader:
             self.leader = gen_leader[-1]
-            print("New leader node: {}".format(self.leader))
         else:
             _nv = random.randint(0,4)
             self.leader = self.zookeeper.get("{}node{}".format(self.zk_path, _nv))
-
+        print("New leader node: {}".format(self.leader))
         leader_path = "{}{}".format(self.zk_leader_path, "leadNode")
-        import pdb;
-        pdb.set_trace()
         if self.zookeeper.exists(leader_path):
             self.zookeeper.delete(leader_path)
         self.zookeeper.ensure_path(leader_path)
@@ -71,7 +68,6 @@ class Broker:
 
 
     def establish_broker(self):
-        import pdb;pdb.set_trace()
         leader_connection_addr = self.leader[0].decode('utf-8').split(',')
         self.context = zmq.Context()
         self.frontend_socket = self.context.socket(zmq.XSUB)
@@ -114,15 +110,7 @@ class Broker:
         return subscriber
 
 
-# socket_to_pub = sys.argv[1] if len(sys.argv) > 1 else "6663"
-# socket_to_sub = sys.argv[2] if len(sys.argv) > 2 else "5556"
-# universal_broker = Broker(socket_to_pub, socket_to_sub)
-
 if __name__ == "__main__":
-    # ip_address = sys.argv[1] if len(sys.argv) > 1 else "localhost"
-    # print("Sysarg 1. Publisher connection port, 2. Subscriber connection port")
-    # socket_to_pub = sys.argv[1] if len(sys.argv) > 1 else "6663"
-    # socket_to_sub = sys.argv[2] if len(sys.argv) > 2 else "5556"
     broker = Broker()
     broker.gen_nodes()
     broker.set_leader()
