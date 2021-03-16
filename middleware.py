@@ -75,6 +75,34 @@ class Broker:
         zmq.proxy(self.frontend_socket, self.backend_socket)
 
 
+def publish_node_conn(publish_obj):
+    up_status = False
+    if publish_obj.zookeeper.exists(publish_obj.zk_path):
+        up_status = True
+
+    if up_status:
+        data, stat = publish_obj.zookeeper.get(publish_obj.zk_path)
+        publish_obj.port = data.decode('utf-8').split(',')[0]
+        conn_str = "tcp://" + publish_obj.host + ":" + publish_obj.port
+        publish_obj.socket.connect(conn_str)
+        print("ZK node connected")
+    else:
+        print("ZK not available")
+
+
+def subscribe_node_conn(subscriber_obj):
+    up_status = False
+    if subscriber_obj.zookeeper.exists(subscriber_obj.zk_path):
+        up_status = True
+
+    if up_status:
+        data, stat = subscriber_obj.zookeeper.get(subscriber_obj.zk_path)
+        subscriber_obj.port = data.decode('utf-8').split(',')[1]
+        print("ZK node connected")
+    else:
+        print("ZK not available")
+
+
 if __name__ == "__main__":
     broker = Broker()
     broker.gen_nodes()

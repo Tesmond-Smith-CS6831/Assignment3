@@ -19,19 +19,8 @@ class Publisher:
     def initialize_context(self):
         self.socket = register_pub()
 
-    def validate_zk_connection(self):
-        up_status = False
-        if self.zookeeper.exists(self.zk_path):
-            up_status = True
-
-        if up_status:
-            data, stat = self.zookeeper.get(self.zk_path)
-            self.port = data.decode('utf-8').split(',')[0]
-            conn_str = "tcp://" + self.host + ":" + self.port
-            self.socket.connect(conn_str)
-            print("ZK node connected")
-        else:
-            print("ZK not available")
+    def middleware_port_connection(self):
+        self = middleware.publish_node_conn(self)
 
     def publish(self, how_to_publish):
         if how_to_publish == 1:
@@ -75,7 +64,7 @@ if __name__ == "__main__":
     topic = sys.argv[3] if len(sys.argv) > 3 else "10001"
     publisher = Publisher(address, topic)
     publisher.initialize_context()
-    publisher.validate_zk_connection()
+    publisher.middleware_port_connection()
     publisher.publish(how_to_publish)
 
 

@@ -24,17 +24,8 @@ class Subscriber:
     def create_context(self):
         self = register_sub(self)
 
-    def validate_zk_connection(self):
-        up_status = False
-        if self.zookeeper.exists(self.zk_path):
-            up_status = True
-
-        if up_status:
-            data, stat = self.zookeeper.get(self.zk_path)
-            self.port = data.decode('utf-8').split(',')[1]
-            print("ZK node connected")
-        else:
-            print("ZK not available")
+    def middleware_port_connection(self):
+        self = middleware.subscribe_node_conn(self)
 
     def get_message(self):
         print("Pulling data from: tcp://{}:{}".format(self.address, self.port))
@@ -68,7 +59,7 @@ if __name__ == "__main__":
     times_to_listen = sys.argv[3] if len(sys.argv) > 3 else 10
     print(topic)
     sub = Subscriber(address_type, topic, times_to_listen)
-    sub.validate_zk_connection()
+    sub.middleware_port_connection()
     sub.create_context()
     sub.get_message()
     print("Message Touch Times: {}".format(sub.output))
