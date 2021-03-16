@@ -2,7 +2,7 @@
 Developed by: Rick Tesmond and Jordan Smith
 
 ## Overview
-In order to achieve anonymity between publishers and subscribers we have updated the source code to mask all ZeroMQ related function calls into a utility layer. An additional feature added to this assignment is the direct ability to dissiminate from the publisher to the subscriber without the broker; this functioinality was misssing from the prior assignment. The middleware class has been updated and maintains the ability to act as a broker/proxy between publishers publishing topics, and subscribers consuming topics. The additional feature to this assignment is the implemntation of Zookeeper. This serves as node management system that handles all interactions between access from the middlware brokers to publishers and subscribers. 
+In order to achieve anonymity between publishers and subscribers we have updated the source code to mask all ZeroMQ related function calls into a utility layer. An additional feature added to this assignment is the direct ability to disseminate from the publisher to the subscriber without the broker; this functioinality was misssing from the prior assignment. The middleware class has been updated and maintains the ability to act as a broker/proxy between publishers publishing topics, and subscribers consuming topics. The additional feature to this assignment is the implemntation of Zookeeper. This serves as node management system that handles all interactions between access from the middlware brokers to publishers and subscribers. 
 
 To satisfy the requirements of the assiment we have updated the source code to remove:
 - ZeroMQ functionality from the publishers and subscribers into an anonymous functions
