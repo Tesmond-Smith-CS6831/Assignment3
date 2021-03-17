@@ -13,7 +13,9 @@ To satisfy the requirements of the assiment we have updated the source code to r
 
 ## Running the Program
 System requirements: Ubuntu 20.04, ZMQ, Python3, Mininet, Xterm, Zookeper, Wireshark \
-Git clone URL: https://github.com/Tesmond-Smith-CS6831/Assignment2/tree/development-pivot
+Git clone URL: https://github.com/Tesmond-Smith-CS6831/Assignment2
+
+**Ensure your mininet infrastructure and Zookeeper server can speak with each other**
 
 1. In your Ubuntu environment, clone our repo and cd into the root of our repo.
 
@@ -54,11 +56,18 @@ Note the majority of these tests are connectivity tests; please follow the instr
 ### Simulations and Graph Output
 Tested using Mininet and Wireshark.
 
-To ensure our code matched the necessary use cases (approach #1 and approach #2), we ran simulations of the expected I/O rates for our cases. These were captured by running wireshark in tandem with mininet to monitor all traffic and acknowledgements through our middleware.
+To ensure our code matched the necessary use cases (approach #1 and approach #2), we ran simulations of the expected I/O rates and roundtrip packet times for our cases. These were captured by running wireshark in tandem with mininet to monitor all traffic and acknowledgements through our middleware.
 
-We saw the expected performance boost from approach #1 where 100 requests flowed in a matter of microseconds, while with approach #2, successfully delivering the topic data to interested subscribers took seconds.
+Similar to what we witnessed in Assignment #1, we saw the expected performance boost from approach #1 where publishers disseminated topic information without dedication to a specific topic resulted in correct data responses from one host to another in a matter of seconds, while with approach #2, where publishers disseminated dedication topic information, successful delivery of the topic data to interested subscribers was almost instantaneous.
 
-Overall, the I/O flow remained between 50-75 packets/second between both approaches, with intermittent spikes when subscribers were either joined or removed from the system. See output/performancecapture.pdf for this I/O graph.
+Regarding the new fault-tolerant broker setup with Zookeeper, functionality is successfully maintained even in the instance of nodes being killed off. However, unlike Assignment 1 where we had no set fault tolerance at the broker level and therefore all communication stopped until another middleware was spun up, we see an expected drop in communication when the node get killed off, but immediately regains request-response functionality thanks to the data watcher functionality:
 
+![IO Averages](./graphs/IOAverages.png)
+The Node was killed at 26s, and only too 2s to instantiate the connection to the new broker node, and disseminate the new broker port info.
+
+Following this trend, we don't notice any lapses in roundtrip time in the request/response cycles when the broker node was killed off either:
+
+![ReqResp](graphs/RRTimeZookeeper.png)
+ 
 
 
