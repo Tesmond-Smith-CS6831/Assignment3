@@ -25,14 +25,16 @@ class Publisher:
     def publish(self, how_to_publish):
         if how_to_publish == 1:
             print("Sending Data to: tcp://{}:{}".format(self.host, self.port))
+            @self.zookeeper.DataWatch(self.zk_path)
+            def watch_node(data, stat, event):
+                if event and event.type == "CHANGED":
+                    print("data changed: {}".format(data))
+                    data, stat = self.zookeeper.get(self.zk_path)
+                    self.port = data.decode('utf-8').split(',')[0]
+                    conn_str = "tcp://" + self.host + ":" + self.port
+                    self.socket.connect(conn_str)
+                    print("Sending Data to: tcp://{}:{}".format(self.host, self.port))
             while True:
-                @self.zookeeper.DataWatch(self.zk_path)
-                def watch_node(data, stat, event):
-                    if not event:
-                        data, stat = self.zookeeper.get(self.zk_path)
-                        self.port = data.decode('utf-8').split(',')[0]
-                        conn_str = "tcp://" + self.host + ":" + self.port
-                        self.socket.connect(conn_str)
                 zipcode = randrange(1, 100000)
                 temperature = randrange(-80, 135)
                 date_time = datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S.%f")
@@ -41,14 +43,16 @@ class Publisher:
 
         else:
             print("Sending Data to: tcp://{}:{}".format(self.host, self.port))
+            @self.zookeeper.DataWatch(self.zk_path)
+            def watch_node(data, stat, event):
+                if event and event.type == "CHANGED":
+                    print("data changed: {}".format(data))
+                    data, stat = self.zookeeper.get(self.zk_path)
+                    self.port = data.decode('utf-8').split(',')[0]
+                    conn_str = "tcp://" + self.host + ":" + self.port
+                    self.socket.connect(conn_str)
+                    print("Sending Data to: tcp://{}:{}".format(self.host, self.port))
             while True:
-                @self.zookeeper.DataWatch(self.zk_path)
-                def watch_node(data, stat, event):
-                    if not event:
-                        data, stat = self.zookeeper.get(self.zk_path)
-                        self.port = data.decode('utf-8').split(',')[0]
-                        conn_str = "tcp://" + self.host + ":" + self.port
-                        self.socket.connect(conn_str)
                 zipcode = self.zip_code
                 temperature = randrange(-80, 135)
                 date_time = datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S.%f")
