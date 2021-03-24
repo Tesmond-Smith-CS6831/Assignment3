@@ -29,14 +29,17 @@ class Subscriber:
 
     def get_message(self):
         print("Pulling data from: tcp://{}:{}".format(self.address, self.port))
+
+        @self.zookeeper.DataWatch(self.zk_path)
+        def watch_node(data, stat, event):
+            if event and event.type == "CHANGED":
+                print("data changed: {}".format(data))
+                data, stat = self.zookeeper.get(self.zk_path)
+                self.port = data.decode('utf-8').split(',')[1]
+                conn_str = "tcp://" + self.address + ":" + self.port
+                self.socket.connect(conn_str)
+                print("Pulling data from: tcp://{}:{}".format(self.address, self.port))
         for x in range(self.total_times_to_listen):
-            @self.zookeeper.DataWatch(self.zk_path)
-            def watch_node(data, stat, event):
-                if not event:
-                    data, stat = self.zookeeper.get(self.zk_path)
-                    self.port = data.decode('utf-8').split(',')[1]
-                    conn_str = "tcp://" + self.address + ":" + self.port
-                    self.socket.connect(conn_str)
             self = filter_message(self)
             zipcode, temperature, sent_time = self.message.split(',')
             self.total_temp += int(temperature)
