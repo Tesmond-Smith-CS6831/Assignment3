@@ -105,6 +105,7 @@ if __name__ == "__main__":
 #    topic = sys.argv[3] if len(sys.argv) > 3 else "10001"
     num_nodes = sys.argv[3] if len(sys.argv) > 3 else 5
     gen_publisher_nodes()
+    publish_topics(how_to_publish)
 #    publisher = Publisher(address, topic)
 #     publisher.initialize_context()
 #     publisher.middleware_port_connection()
