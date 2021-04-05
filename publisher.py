@@ -5,15 +5,21 @@ from utility_funcs import register_pub, pub_send
 from kazoo.client import KazooClient
 import middleware
 
+TOPIC_LIST = ["10001", "23666", "31715", "24065", "91210"]
+TOPIC_LIST_STRENGTH = [0, 0, 0, 0, 0]
+PUBLISHER_NODES = []
 
 class Publisher:
-    def __init__(self, host, zipcode):
+    def __init__(self, host, zipcode, strength):
         self.socket = None
         self.port = None
         self.host = host
         self.zip_code = zipcode
+        self.topic_ownership_strengh = strength
+        self.publisher_nodes = []
         self.zookeeper = KazooClient(hosts='127.0.0.1:2181')
         self.zk_path = '/leader/leadNode'
+        self.publeader_path = '/leader/pubLeader'
         self.zookeeper.start()
 
     def initialize_context(self):
@@ -58,6 +64,39 @@ class Publisher:
                 date_time = datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S.%f")
                 concat_message = str(zipcode) + "," + str(temperature) + "," + date_time
                 pub_send(self, concat_message)
+<<<<<<< HEAD
+=======
+
+
+def update_topic_ownership_strength(index):
+    update_value = TOPIC_LIST_STRENGTH[index]
+    update_value += 1
+    TOPIC_LIST_STRENGTH.insert(index, update_value)
+
+
+def gen_publisher_nodes(number_of_nodes, host):
+    for i in range(number_of_nodes):
+        index = randrange(0, 4)
+        pub = Publisher(host, TOPIC_LIST[index], TOPIC_LIST_STRENGTH[index])
+        PUBLISHER_NODES.append(pub)
+        update_topic_ownership_strength(index)
+
+    for publisher in PUBLISHER_NODES:
+        publisher.initialize_context()
+        publisher.middleware_port_connection()
+        node_name = "{}{}".format(publisher.zk_path, "pub_node" + str(i))
+        if publisher.zookeeper.exists(node_name):
+            pass
+        else:
+            publisher.zookeeper.ensure_path(publisher.zk_path)
+            publisher.zookeeper.create(node_name)
+
+
+def publish_topics(how_to_publish):
+    while True:
+        for publisher in PUBLISHER_NODES:
+            if publisher.topic_ownership_strengh == 0:
+                publisher.publish(how_to_publish)
 
 
 if __name__ == "__main__":
@@ -65,10 +104,13 @@ if __name__ == "__main__":
           "2. publish a singular topic: if 2 is selected enter zip code")
     address = sys.argv[1] if len(sys.argv) > 1 else "localhost"
     how_to_publish = sys.argv[2] if len(sys.argv) > 2 else 1
-    topic = sys.argv[3] if len(sys.argv) > 3 else "10001"
-    publisher = Publisher(address, topic)
-    publisher.initialize_context()
-    publisher.middleware_port_connection()
-    publisher.publish(how_to_publish)
+#    topic = sys.argv[3] if len(sys.argv) > 3 else "10001"
+    num_nodes = sys.argv[3] if len(sys.argv) > 3 else 5
+    gen_publisher_nodes()
+    publish_topics(how_to_publish)
+#    publisher = Publisher(address, topic)
+#     publisher.initialize_context()
+#     publisher.middleware_port_connection()
+#     publisher.publish(how_to_publish)
 
 
