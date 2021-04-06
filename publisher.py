@@ -13,7 +13,7 @@ class Publisher:
         self.port = None
         self.host = host
         self.zip_code = zipcode
-        # self.topic_ownership_strength = strength
+        self.topic_ownership_path = "/topics/{}".format(zipcode)
         self.zookeeper = KazooClient(hosts='127.0.0.1:2181')
         self.zk_path = '/leader/leadNode'
         self.zookeeper.start()
@@ -46,7 +46,7 @@ class Publisher:
 
         else:
             print("Sending Data to: tcp://{}:{}".format(self.host, self.port))
-            ownership = self.check_ownership()
+            self.check_ownership()
             @self.zookeeper.DataWatch(self.zk_path)
             def watch_node(data, stat, event):
                 if event and event.type == "CHANGED":
@@ -57,7 +57,11 @@ class Publisher:
                     self.socket.connect(conn_str)
                     print("Sending Data to: tcp://{}:{}".format(self.host, self.port))
 
-            while ownership:
+            @self.zookeeper.DataWatch(self.topic_ownership_path)
+            def watch_node(data, stat, event):
+                if event and event.type == "CHANGED":
+                    print("Ownership changed!")
+            while True:
                 zipcode = self.zip_code
                 temperature = randrange(-80, 135)
                 date_time = datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S.%f")
@@ -68,15 +72,12 @@ class Publisher:
         if topic_hashtable.get_topic(self.zip_code):
             cur_topic_strength = topic_hashtable.get_topic(self.zip_code)[1]
             if cur_topic_strength > 1:
-                print("***Node with higher ownership level. Current topic strength:{}. STOPPING".format(
+                print("***Node with higher ownership level. Current topic strength:{}. SUSPENDING".format(
                     cur_topic_strength))
-                return False
             else:
                 topic_hashtable.set_topic(self.zip_code)
-                return True
         else:
             topic_hashtable.set_topic(self.zip_code)
-            return True
 
 
 
