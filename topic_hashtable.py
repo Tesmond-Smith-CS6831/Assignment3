@@ -4,8 +4,9 @@ TOPIC_HASH = {}
 
 
 def get_topic(topic):
-    if TOPIC_HASH.get(topic):
+    if TOPIC_HASH.get(topic) is not None:
         return [topic, TOPIC_HASH[topic]]
+    return False
 
 
 def set_topic(topic, info, strength):
