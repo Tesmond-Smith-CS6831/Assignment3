@@ -9,27 +9,12 @@ def register_pub():
     return publisher_socket
 
 
-def pub_send(publisher, message, strength, proxy=2):
-    zipcode, temperature, date_time = message.split(',')
+def pub_send(publisher, message, proxy=2):
     if proxy == 1:
         publisher.socket.send_string(message)
-        return True
     else:
-        if topic_hashtable.get_topic(zipcode):
-            cur_topic_strength = topic_hashtable.get_topic(zipcode)[1][0]
-            if strength <= cur_topic_strength:
-                topic_hashtable.set_topic(zipcode, message, strength)
-                publisher.socket.connect(f"tcp://{publisher.host}:{publisher.port}")
-                publisher.socket.send_string(message)
-                return True
-            else:
-                print("***Strength is less than or equal to current topic strength: {}. STOPPING".format(cur_topic_strength))
-                return False
-        else:
-            topic_hashtable.set_topic(zipcode, message, strength)
-            publisher.socket.connect(f"tcp://{publisher.host}:{publisher.port}")
-            publisher.socket.send_string(message)
-            return True
+        publisher.socket.connect(f"tcp://{publisher.host}:{publisher.port}")
+        publisher.socket.send_string(message)
 
 
 def register_sub(subscriber):
