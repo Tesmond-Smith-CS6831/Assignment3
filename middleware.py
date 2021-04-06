@@ -26,30 +26,37 @@ class Broker:
         self.zk_path = '/nodes/'
         self.zk_leader_path = '/leader/'
         self.history_path = '/history/node'
+        self.replica_path = '/lb_replica/'
         self.leader = None
+        self.connection_count = 0
         self.zookeeper = KazooClient(hosts='127.0.0.1:2181')
         self.zookeeper.start()
 
     def gen_nodes(self):
-        used_ports = []
-        for i in range(5):
-            port1 = str(random.randrange(5000, 9999, 2))
-            if port1 in used_ports:
+        leader_path = "{}{}".format(self.zk_leader_path, "leadNode")
+        if self.zookeeper.exists(leader_path):
+            self.leader = self.zookeeper.get(leader_path)
+        else:
+            used_ports = []
+            for i in range(5):
                 port1 = str(random.randrange(5000, 9999, 2))
-            used_ports.append(port1)
+                if port1 in used_ports:
+                    port1 = str(random.randrange(5000, 9999, 2))
+                used_ports.append(port1)
 
-            port2 = str(random.randrange(5000, 9999, 3))
-            if port2 in used_ports:
-                port2 = str(random.randrange(5000, 9999, 2))
-            used_ports.append(port2)
+                port2 = str(random.randrange(5000, 9999, 3))
+                if port2 in used_ports:
+                    port2 = str(random.randrange(5000, 9999, 2))
+                used_ports.append(port2)
 
-            node_name = "{}{}".format(self.zk_path, "node"+str(i))
-            ports = bytes("{},{}".format(port1, port2).encode("utf-8"))
-            if self.zookeeper.exists(node_name):
-                pass
-            else:
-                self.zookeeper.ensure_path(self.zk_path)
-                self.zookeeper.create(node_name,ports)
+                node_name = "{}{}".format(self.zk_path, "node"+str(i))
+                ports = bytes("{},{}".format(port1, port2).encode("utf-8"))
+                if self.zookeeper.exists(node_name):
+                    pass
+                else:
+                    self.zookeeper.ensure_path(self.zk_path)
+                    self.zookeeper.create(node_name,ports)
+            self.set_leader()
 
     def set_leader(self):
         gen_leader = self.zookeeper.Election(self.zk_path, "leader").contenders()
@@ -66,30 +73,52 @@ class Broker:
         self.zookeeper.ensure_path(leader_path)
         self.zookeeper.set(leader_path, self.leader[0])
 
-    def create_history_node(self):
-        if self.zookeeper.exists(history_node):
-            pass
-        else:
-            self.zookeeper.ensure_path(history_node)
-            self.zookeeper.create(history_node, ephemeral=True)
+    def create_loadbalance_replicas(self):
+        """Create ephemeral (session bound) replicas of node"""
+        if not self.zookeeper.exists(self.replica_path):
+            print("Replicating leader...")
+            for i in range(0, 10):
+                replica_node = "{}{}".format(self.replica_path, "replicaNode{}".format(i))
+                self.zookeeper.ensure_path(self.replica_path)
+                self.zookeeper.create(replica_node, self.leader[0], ephemeral=True)
+            print("... Replication Complete")
 
-    def handle_history(self):
-        print("History Handling")
-        while True:
-            addr_input = raw_input()
-            if addr_input == "":
-                @self.zk_object.DataWatch(self.history_node)
-                def watch_node(data, stat, event):
-                    if event == None:  # wait for event to be alive and None(stable)
-                        data, stat = self.zk_object.get(self.history_node)
-                        print("Get a new subscriber here")
-                        address = data.split(",")
-                        pub_url = "tcp://" + address[0] + ":" + address[1]
-                        self.global_port = address[1]
-                        self.global_url = pub_url
-                        self.newSub = True
+    # def create_history_node(self):
+    #     if self.zookeeper.exists(history_node):
+    #         pass
+    #     else:
+    #         self.zookeeper.ensure_path(history_node)
+    #         self.zookeeper.create(history_node, ephemeral=True)
+    #
+    # def handle_history(self):
+    #     print("History Handling")
+    #     while True:
+    #         addr_input = raw_input()
+    #         if addr_input == "":
+    #             @self.zk_object.DataWatch(self.history_node)
+    #             def watch_node(data, stat, event):
+    #                 if event == None:  # wait for event to be alive and None(stable)
+    #                     data, stat = self.zk_object.get(self.history_node)
+    #                     print("Get a new subscriber here")
+    #                     address = data.split(",")
+    #                     pub_url = "tcp://" + address[0] + ":" + address[1]
+    #                     self.global_port = address[1]
+    #                     self.global_url = pub_url
+    #                     self.newSub = True
 
     def establish_broker(self):
+        @self.zookeeper.DataWatch(self.zk_leader_path)
+        def watch_node(data, stat, event):
+            if event:
+                leader_path = "{}{}".format(self.zk_leader_path, "leadNode")
+                print("Load balancer event detected: {}".format(event.type))
+                _nv = random.randint(0, 9)
+                self.leader = self.zookeeper.get("{}replicaNode{}".format(self.replica_path, _nv))
+                self.zookeeper.ensure_path(leader_path)
+                self.zookeeper.set(leader_path, self.leader[0])
+                self.zookeeper.delete(self.replica_path)
+                self.create_loadbalance_replicas()
+        print("Loadbalanced Broker established. RUNNING.")
         leader_connection_addr = self.leader[0].decode('utf-8').split(',')
         self.context = zmq.Context()
         self.frontend_socket = self.context.socket(zmq.XSUB)
@@ -98,28 +127,6 @@ class Broker:
         self.backend_socket.bind(f"tcp://*:{leader_connection_addr[1]}")
         zmq.proxy(self.frontend_socket, self.backend_socket)
 
-
-# def get_topic(topic):
-#     if TOPIC_HASH.get(topic):
-#         return [topic, TOPIC_HASH[topic]]
-#
-#
-# def set_topic(topic):
-#     if TOPIC_HASH.get(topic) is None:
-#         TOPIC_HASH[topic] = 1
-#     else:
-#         TOPIC_HASH[topic] += 1
-#     return [topic, TOPIC_HASH[topic]]
-#
-#
-# def decrement_topic(topic):
-#     if TOPIC_HASH.get(topic) is not None and TOPIC_HASH[topic] > 0:
-#         TOPIC_HASH[topic] -= 1
-#         return [topic, TOPIC_HASH[topic]]
-#     elif TOPIC_HASH.get(topic) is not None:
-#         return [topic, TOPIC_HASH[topic]]
-#     else:
-#         return "Topic not found :("
 
 def publish_node_conn(publish_obj):
     up_status = False
@@ -152,5 +159,5 @@ def subscribe_node_conn(subscriber_obj):
 if __name__ == "__main__":
     broker = Broker()
     broker.gen_nodes()
-    broker.set_leader()
+    broker.create_loadbalance_replicas()
     broker.establish_broker()
