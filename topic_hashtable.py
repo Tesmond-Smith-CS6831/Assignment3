@@ -1,24 +1,16 @@
+# Since ownership strength is reverse magnitude, highest strength is 1
+# New topics have strength given, if current strength > new strength, new strength is current information
 TOPIC_HASH = {}
 
 
 def get_topic(topic):
-    if TOPIC_HASH.get(topic, ):
+    if TOPIC_HASH.get(topic):
         return [topic, TOPIC_HASH[topic]]
 
 
-def set_topic(topic):
+def set_topic(topic, info, strength):
     if TOPIC_HASH.get(topic) is None:
-        TOPIC_HASH[topic] = 1
-    else:
-        TOPIC_HASH[topic] += 1
+        TOPIC_HASH[topic] = (strength, info)
+    elif TOPIC_HASH.get(topic) is not None and TOPIC_HASH[topic] > strength:
+        TOPIC_HASH[topic] = (strength, info)
     return [topic, TOPIC_HASH[topic]]
-
-
-def decrement_topic(topic):
-    if TOPIC_HASH.get(topic) is not None and TOPIC_HASH[topic] > 0:
-        TOPIC_HASH[topic] -= 1
-        return [topic, TOPIC_HASH[topic]]
-    elif TOPIC_HASH.get(topic) is not None:
-        return [topic, TOPIC_HASH[topic]]
-    else:
-        return "Topic not found :("
