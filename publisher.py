@@ -1,5 +1,6 @@
 import sys
 import datetime
+import topic_hashtable
 from random import randrange
 from utility_funcs import register_pub, pub_send
 from kazoo.client import KazooClient
@@ -12,8 +13,7 @@ class Publisher:
         self.port = None
         self.host = host
         self.zip_code = zipcode
-        self.topic_ownership_strengh = strength
-        self.publisher_nodes = []
+        self.topic_ownership_strength = strength
         self.zookeeper = KazooClient(hosts='127.0.0.1:2181')
         self.zk_path = '/leader/leadNode'
         self.zookeeper.start()
@@ -41,7 +41,8 @@ class Publisher:
                 temperature = randrange(-80, 135)
                 date_time = datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S.%f")
                 concat_message = str(zipcode) + "," + str(temperature) + "," + date_time
-                pub_send(self, concat_message, self.topic_ownership_strengh, how_to_publish)
+                if pub_send(self, concat_message, self.topic_ownership_strength, how_to_publish) is False:
+                    break
 
         else:
             print("Sending Data to: tcp://{}:{}".format(self.host, self.port))
@@ -59,7 +60,11 @@ class Publisher:
                 temperature = randrange(-80, 135)
                 date_time = datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S.%f")
                 concat_message = str(zipcode) + "," + str(temperature) + "," + date_time
-                pub_send(self, concat_message, self.topic_ownership_strengh)
+                if pub_send(self, concat_message, self.topic_ownership_strength) is False:
+                    break
+            topic_hashtable.reset_topic(zipcode)
+
+
 
 # def update_topic_ownership_strength(index):
 #     update_value = TOPIC_LIST_STRENGTH[index]
@@ -102,9 +107,14 @@ if __name__ == "__main__":
 #     num_nodes = sys.argv[3] if len(sys.argv) > 3 else 5
     # gen_publisher_nodes()
     # publish_topics(how_to_publish)
-    publisher = Publisher(address, topic, strength)
-    publisher.initialize_context()
-    publisher.middleware_port_connection()
-    publisher.publish(how_to_publish)
+    try:
+        publisher = Publisher(address, topic, strength)
+        publisher.initialize_context()
+        publisher.middleware_port_connection()
+        publisher.publish(int(how_to_publish))
+    except KeyboardInterrupt:
+        if topic and topic_hashtable.get_topic(topic):
+            topic_hashtable.reset_topic(topic)
+            print("removed topic record")
 
 

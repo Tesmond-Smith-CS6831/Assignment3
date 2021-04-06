@@ -2,37 +2,34 @@
 import zmq
 import topic_hashtable
 
+
 def register_pub():
     publisher_context = zmq.Context()
     publisher_socket = publisher_context.socket(zmq.PUB)
     return publisher_socket
 
 
-def pub_send(publisher, message, strength, proxy=None):
+def pub_send(publisher, message, strength, proxy=2):
     zipcode, temperature, date_time = message.split(',')
     if proxy == 1:
-        if topic_hashtable.get_topic(zipcode):
-            cur_topic_strength = topic_hashtable.get_topic(zipcode)[0][0]
-            if strength < cur_topic_strength:
-                topic_hashtable.set_topic(zipcode, message, strength)
-                publisher.socket.send_string(message)
-            else:
-                print("Lower strength, will not send. Current strength:{}".format(cur_topic_strength))
-        else:
-            topic_hashtable.set_topic(message)
+        publisher.socket.send_string(message)
+        return True
     else:
         if topic_hashtable.get_topic(zipcode):
-            cur_topic_strength = topic_hashtable.get_topic(zipcode)[0][0]
-            if strength < cur_topic_strength:
+            cur_topic_strength = topic_hashtable.get_topic(zipcode)[1][0]
+            if strength <= cur_topic_strength:
                 topic_hashtable.set_topic(zipcode, message, strength)
                 publisher.socket.connect(f"tcp://{publisher.host}:{publisher.port}")
-                publisher.socket.send_string("{},{},{},{}".format(zipcode, temperature, date_time, strength))
+                publisher.socket.send_string(message)
+                return True
             else:
-                print("Lower strength, will not send. Current strength:{}".format(cur_topic_strength))
+                print("***Strength is less than or equal to current topic strength: {}. STOPPING".format(cur_topic_strength))
+                return False
         else:
-            topic_hashtable.set_topic(message)
+            topic_hashtable.set_topic(zipcode, message, strength)
             publisher.socket.connect(f"tcp://{publisher.host}:{publisher.port}")
-            publisher.socket.send_string("{},{},{},{}".format(zipcode, temperature, date_time, strength))
+            publisher.socket.send_string(message)
+            return True
 
 
 def register_sub(subscriber):
