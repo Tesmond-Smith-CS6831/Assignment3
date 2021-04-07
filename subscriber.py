@@ -1,18 +1,22 @@
 import sys
 import datetime
 import middleware
-from utility_funcs import register_sub, filter_message
+from utility_funcs import register_sub, filter_message, receive_history
 from kazoo.client import KazooClient
 
 
 class Subscriber:
-    def __init__(self, address, topic, time_to_listen):
+    def __init__(self, address, topic, time_to_listen, history_size, history = 2223):
         self.address = address
         self.port = None
         self.total_temp = 0
         self.zip_code = topic
         self.total_times_to_listen = int(time_to_listen)
         self.listen_counter = 0
+        self.history_socket = None
+        self.history_port = history
+        self.history_size = int(history_size)
+        self.history_array = []
         self.message = None
         self.context = None
         self.socket = None
@@ -49,10 +53,21 @@ class Subscriber:
 
             if self.listen_counter == self.total_times_to_listen:
                 print(self.print_message(self.total_temp / self.total_times_to_listen))
+                self.get_published_history()
                 self.context.destroy()
 
     def print_message(self, temperature):
         return "Average temperature for zipcode {} is: {}".format(self.zip_code, temperature)
+
+    def get_published_history(self):
+        for i in range(int(self.history_size)):
+            message = receive_history(self, self.history_size)
+            self.history_array.append(message)
+        if len(self.history_array) != self.history_size:
+            print("No History was received, history size sent by publisher is of a different size")
+            return
+        for i in range(len(self.history_array)):
+            print("Temperature history is {}".format(self.history_array))
 
 
 if __name__ == "__main__":
@@ -60,8 +75,9 @@ if __name__ == "__main__":
     address_type = sys.argv[1] if len(sys.argv) > 1 else "localhost"
     topic = sys.argv[2] if len(sys.argv) > 2 else "10001"
     times_to_listen = sys.argv[3] if len(sys.argv) > 3 else 10
+    requested_history = sys.argv[4] if len(sys.argv) > 4 else 10
     print(topic)
-    sub = Subscriber(address_type, topic, times_to_listen)
+    sub = Subscriber(address_type, topic, times_to_listen, requested_history)
     sub.middleware_port_connection()
     sub.create_context()
     sub.get_message()
