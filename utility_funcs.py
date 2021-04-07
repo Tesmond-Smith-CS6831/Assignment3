@@ -1,5 +1,6 @@
 # Utility functions for hiding ZMQ from the pub/sub
 import zmq
+import topic_hashtable
 
 
 def register_pub():
@@ -11,10 +12,10 @@ def register_pub():
 def pub_send(publisher, message, proxy=2):
     zipcode, temperature, date_time = message.split(',')
     if proxy == 1:
-        publisher.socket.send_string("{},{},{}".format(zipcode, temperature, date_time))
+        publisher.socket.send_string(message)
     else:
         publisher.socket.connect(f"tcp://{publisher.host}:{publisher.port}")
-        publisher.socket.send_string("{},{},{}".format(zipcode, temperature, date_time))
+        publisher.socket.send_string(message)
 
 
 def register_sub(subscriber):
