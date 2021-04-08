@@ -25,7 +25,6 @@ class Broker:
 
         self.zk_path = '/nodes/'
         self.zk_leader_path = '/leader/'
-        self.history_path = '/history/node'
         self.replica_path = '/lb_replica/'
         self.leader = None
         self.connection_count = 0
@@ -82,29 +81,6 @@ class Broker:
                 self.zookeeper.ensure_path(self.replica_path)
                 self.zookeeper.create(replica_node, self.leader[0], ephemeral=True)
             print("... Replication Complete")
-
-    # def create_history_node(self):
-    #     if self.zookeeper.exists(history_node):
-    #         pass
-    #     else:
-    #         self.zookeeper.ensure_path(history_node)
-    #         self.zookeeper.create(history_node, ephemeral=True)
-    #
-    # def handle_history(self):
-    #     print("History Handling")
-    #     while True:
-    #         addr_input = raw_input()
-    #         if addr_input == "":
-    #             @self.zk_object.DataWatch(self.history_node)
-    #             def watch_node(data, stat, event):
-    #                 if event == None:  # wait for event to be alive and None(stable)
-    #                     data, stat = self.zk_object.get(self.history_node)
-    #                     print("Get a new subscriber here")
-    #                     address = data.split(",")
-    #                     pub_url = "tcp://" + address[0] + ":" + address[1]
-    #                     self.global_port = address[1]
-    #                     self.global_url = pub_url
-    #                     self.newSub = True
 
     def establish_broker(self):
         @self.zookeeper.DataWatch(self.zk_leader_path)

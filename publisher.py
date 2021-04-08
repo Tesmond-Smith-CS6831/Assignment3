@@ -57,24 +57,27 @@ class Publisher:
         else:
             print("Sending Data to: tcp://{}:{}".format(self.host, self.port))
             self.check_ownership()
-                self.update_published_history(concat_message)
-                pub_send(self, concat_message, how_to_publish)
-                for i in range(len(self.published_history)):
-                    new_message = str(zipcode) + "," + str(temperature) + "," + str(self.history_to_keep)
-                    send_history(self, new_message)
 
-        else:
-            print("Sending Data to: tcp://{}:{}".format(self.host, self.port))
+            @self.zookeeper.DataWatch(self.zk_path)
+            def watch_node(data, stat, event):
+                if event and event.type == "CHANGED":
+                    print("data changed: {}".format(data))
+                    data, stat = self.zookeeper.get(self.zk_path)
+                    self.port = data.decode('utf-8').split(',')[0]
+                    conn_str = "tcp://" + self.host + ":" + self.port
+                    self.socket.connect(conn_str)
+                    print("Sending Data to: tcp://{}:{}".format(self.host, self.port))
+
             @self.zookeeper.DataWatch(self.topic_ownership_path)
             def watch_node(data, stat, event):
                 if event and event.type == "CHANGED":
                     print("Ownership changed!")
+
             while True:
                 zipcode = self.zip_code
                 temperature = randrange(-80, 135)
                 date_time = datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S.%f")
                 concat_message = str(zipcode) + "," + str(temperature) + "," + date_time
-                self.update_published_history(concat_message)
                 pub_send(self, concat_message)
                 for i in range(len(self.published_history)):
                     new_message = str(zipcode) + "," + str(temperature) + "," + str(self.history_to_keep)
@@ -104,6 +107,7 @@ class Publisher:
                 topic_hashtable.set_topic(self.zip_code)
         else:
             topic_hashtable.set_topic(self.zip_code)
+
 
 if __name__ == "__main__":
     print("Sysarg 1. Ip Address, 2. Publisher functionality (i.e. 1. publish multiple topics, "
