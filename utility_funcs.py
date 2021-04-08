@@ -48,8 +48,4 @@ def receive_history(subscriber, size):
     subscriber.history_socket.setsockopt_string(zmq.SUBSCRIBE, subscriber.zip_code)
     message = subscriber.socket.recv_string()
     zipcode, topic_temp, topic_size = message.split(",")
-    # print(zipcode + ", " + topic_temp + ", " + topic_size)
-    # if topic_size != size:
-    #     return None
-    # else:
     return topic_temp

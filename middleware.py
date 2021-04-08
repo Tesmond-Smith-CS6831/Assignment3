@@ -35,10 +35,6 @@ class Broker:
         self.zookeeper.start()
 
     def gen_nodes(self):
-        # leader_path = "{}{}".format(self.zk_leader_path, "leadNode")
-        # if self.zookeeper.exists(leader_path):
-        #     self.leader = self.zookeeper.get(leader_path)
-        # else:
         used_ports = []
         for i in range(5):
             port1 = str(random.randrange(5000, 9999, 2))
@@ -77,19 +73,17 @@ class Broker:
         if not self.zookeeper.exists(leader_type1_path):
             self.zookeeper.ensure_path(self.zk_type1_leader_path)
             self.zookeeper.create(leader_type1_path, self.leader1[0], None, ephemeral=True)
-        # else:
-        #     self.zookeeper.delete(leader_type1_path)
-        #     self.zookeeper.ensure_path(self.zk_type1_leader_path)
-        #     self.zookeeper.create(leader_type1_path, self.leader1[0], None, ephemeral=True)
+        else:
+            self.zookeeper.ensure_path(self.zk_type1_leader_path)
+            self.zookeeper.set(leader_type1_path, self.leader1[0])
         print("New Type 1 Broker Node added to pool: {}".format(self.leader1))
 
         if not self.zookeeper.exists(leader_type2_path):
             self.zookeeper.ensure_path(self.zk_type2_leader_path)
             self.zookeeper.create(leader_type2_path, self.leader2[0], None, ephemeral=True)
-        # else:
-        #     self.zookeeper.delete(leader_type2_path)
-        #     self.zookeeper.ensure_path(self.zk_type2_leader_path)
-        #     self.zookeeper.create(leader_type2_path, self.leader2[0], None, ephemeral=True)
+        else:
+            self.zookeeper.ensure_path(self.zk_type2_leader_path)
+            self.zookeeper.set(leader_type2_path, self.leader2[0])
         print("New Type 2 Broker Node added to pool: {}".format(self.leader2))
 
     def create_loadbalance_replicas(self):
@@ -101,12 +95,12 @@ class Broker:
         if self.zookeeper.exists(replica_node_type1):
             self.zookeeper.delete(replica_node_type1)
         self.zookeeper.ensure_path(self.replica_path)
-        self.zookeeper.create(replica_node_type1, self.leader1[0])
+        self.zookeeper.create(replica_node_type1, self.leader1[0], None, ephemeral=True)
 
         if self.zookeeper.exists(replica_node_type2):
             self.zookeeper.delete(replica_node_type2)
         self.zookeeper.ensure_path(self.replica_path)
-        self.zookeeper.create(replica_node_type2, self.leader2[0])
+        self.zookeeper.create(replica_node_type2, self.leader2[0], None, ephemeral=True)
 
         print("... Replication Complete")
 
@@ -159,6 +153,8 @@ class Broker:
 
 
 def publish_node_conn(publish_obj):
+    import pdb;
+    pdb.set_trace()
     up_status = False
     if publish_obj.pub_type == 1:
         if publish_obj.zookeeper.exists(publish_obj.zk_path_type1):
