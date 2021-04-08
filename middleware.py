@@ -14,6 +14,7 @@ import socket
 import zmq
 import random
 from kazoo.client import KazooClient
+from kazoo.exceptions import NodeExistsError
 
 class Broker:
 
@@ -23,7 +24,8 @@ class Broker:
         self.context = None
         self.proxy = None
         self.tempPubPort = None
-
+        self.front_port = None
+        self.back_port = None
         self.zk_path = '/nodes/'
         self.zk_leader_path = '/leader/'
         self.replica_path = '/lb_replica/'
@@ -56,23 +58,23 @@ class Broker:
                     pass
                 else:
                     self.zookeeper.ensure_path(self.zk_path)
-                    self.zookeeper.create(node_name, node_info)
+                    self.zookeeper.create(node_name, node_info, ephemeral=True)
             self.set_leader()
 
     def set_leader(self):
-        import pdb;
-        pdb.set_trace()
         gen_leader = self.zookeeper.Election(self.zk_path, "leader").contenders()
         if gen_leader:
             self.leader = gen_leader[-1]
         else:
             _nv = random.randint(0, 4)
             self.leader = self.zookeeper.get("{}node{}".format(self.zk_path, _nv))
-            [self.zookeeper.delete("{}{}".format(self.zk_path, "node" + str(i))) for i in range(5)]
         print("New leader node: {}".format(self.leader))
         leader_path = "{}{}".format(self.zk_leader_path, "leadNode")
         self.zookeeper.ensure_path(leader_path)
-        self.zookeeper.create(leader_path, self.leader[0])
+        try:
+            self.zookeeper.create(leader_path, self.leader[0])
+        except NodeExistsError:
+            self.zookeeper.set(leader_path, self.leader[0])
 
     def create_loadbalance_replicas(self):
         """Create ephemeral (session bound) replicas of node"""
@@ -80,6 +82,8 @@ class Broker:
         repl_id = self.zookeeper.get(self.replica_path)[1].numChildren
         replica_node = "{}{}".format(self.replica_path, "replicaNode{}".format(repl_id))
         l_ports = self.zookeeper.get("/leader/leadNode")[0].decode("utf-8")
+        self.front_port = l_ports[0]
+        self.back_port = l_ports[1]
         repl_data = bytes("{},{}".format(l_ports, self.ip_addr).encode("utf-8"))
         self.zookeeper.ensure_path(self.replica_path)
         self.zookeeper.create(replica_node, repl_data, ephemeral=True)
@@ -142,5 +146,9 @@ if __name__ == "__main__":
     try:
         broker.establish_broker()
     except KeyboardInterrupt:
+        # repl_id = broker.zookeeper.get(broker.replica_path)[1].numChildren
+        # replica_node = "{}{}".format(broker.replica_path, "replicaNode{}".format(repl_id))
+        # broker.zookeeper.delete(replica_node)
+        # print('Replica Node deleted')
         broker.zookeeper.delete('/leader/leadNode')
         print("Broker Node deleted")

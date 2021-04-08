@@ -61,7 +61,7 @@ class Publisher:
             @self.zookeeper.DataWatch(self.zk_path)
             def watch_node(data, stat, event):
                 if event and event.type == "CHANGED":
-                    print("data changed: {}".format(data))
+                    print("TRAFFIC RE-ROUTED: {}".format(data))
                     data, stat = self.zookeeper.get(self.zk_path)
                     self.port = data.decode('utf-8').split(',')[0]
                     conn_str = "tcp://" + self.host + ":" + self.port
