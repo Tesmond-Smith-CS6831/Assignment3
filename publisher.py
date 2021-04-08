@@ -39,10 +39,10 @@ class Publisher:
                 if event and event.type == "CHANGED":
                     print("TRAFFIC RE-ROUTED: {}".format(data))
                     data, stat = self.zookeeper.get(self.zk_path_type1)
-                    self.port = data.decode('utf-8').split(',')[1]
-                    conn_str = "tcp://" + self.address + ":" + self.port
+                    self.port, self.host = data.decode('utf-8').split(',')[0], data.decode('utf-8').split(',')[2]
+                    conn_str = "tcp://" + self.host + ":" + self.port
                     self.socket.connect(conn_str)
-                    print("Pulling data from: tcp://{}:{}".format(self.address, self.port))
+                    print("Sending data to: tcp://{}:{}".format(self.host, self.port))
             while True:
                 zipcode = randrange(1, 100000)
                 temperature = randrange(-80, 135)
@@ -63,7 +63,7 @@ class Publisher:
                 if event and event.type == "CHANGED":
                     print("TRAFFIC RE-ROUTED: {}".format(data))
                     data, stat = self.zookeeper.get(self.zk_path_type2)
-                    self.port = data.decode('utf-8').split(',')[0]
+                    self.port, self.host = data.decode('utf-8').split(',')[0], data.decode('utf-8').split(',')[2]
                     conn_str = "tcp://" + self.host + ":" + self.port
                     self.socket.connect(conn_str)
                     print("Sending Data to: tcp://{}:{}".format(self.host, self.port))

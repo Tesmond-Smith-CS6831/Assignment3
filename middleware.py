@@ -33,6 +33,7 @@ class Broker:
         self.connection_count = 0
         self.zookeeper = KazooClient(hosts='127.0.0.1:2181')
         self.zookeeper.start()
+        self.ip_addr = socket.gethostbyname(socket.gethostname())
 
     def gen_nodes(self):
         used_ports = []
@@ -48,7 +49,7 @@ class Broker:
             used_ports.append(port2)
 
             node_name = "{}{}".format(self.zk_path, "node"+str(i))
-            node_info = bytes("{},{}".format(port1, port2).encode("utf-8"))
+            node_info = bytes("{},{},{}".format(port1, port2, self.ip_addr).encode("utf-8"))
             if self.zookeeper.exists(node_name):
                 pass
             else:
@@ -121,7 +122,7 @@ class Broker:
                     self.zookeeper.ensure_path(self.zk_type1_leader_path)
                     try:
                         self.zookeeper.set(leader_path, self.leader1[0])
-                    except NoNodeError:
+                    except:
                         self.zookeeper.create(leader_path, self.leader1[0])
 
             @self.zookeeper.DataWatch(self.zk_type2_leader_path+"leadNode")
@@ -134,7 +135,7 @@ class Broker:
                     self.zookeeper.ensure_path(self.zk_type2_leader_path)
                     try:
                         self.zookeeper.set(leader_path, self.leader2[0])
-                    except NoNodeError:
+                    except:
                         self.zookeeper.create(leader_path, self.leader2[0])
         except NodeExistsError:
             pass
@@ -151,10 +152,12 @@ class Broker:
         self.backend_socket.bind(f"tcp://*:{leader2_connection_addr[1]}")
         zmq.proxy(self.frontend_socket, self.backend_socket)
 
+    def close_connection(self):
+        self.frontend_socket.close()
+        self.backend_socket.close()
+
 
 def publish_node_conn(publish_obj):
-    import pdb;
-    pdb.set_trace()
     up_status = False
     if publish_obj.pub_type == 1:
         if publish_obj.zookeeper.exists(publish_obj.zk_path_type1):
@@ -162,7 +165,7 @@ def publish_node_conn(publish_obj):
 
         if up_status:
             data, stat = publish_obj.zookeeper.get(publish_obj.zk_path_type1)
-            publish_obj.port = data.decode('utf-8').split(',')[0]
+            publish_obj.port, publish_obj.host = data.decode('utf-8').split(',')[0], data.decode('utf-8').split(',')[2]
             conn_str = "tcp://" + publish_obj.host + ":" + publish_obj.port
             publish_obj.socket.connect(conn_str)
             print("ZK node connected")
@@ -174,7 +177,7 @@ def publish_node_conn(publish_obj):
 
         if up_status:
             data, stat = publish_obj.zookeeper.get(publish_obj.zk_path_type2)
-            publish_obj.port = data.decode('utf-8').split(',')[0]
+            publish_obj.port, publish_obj.host = data.decode('utf-8').split(',')[0], data.decode('utf-8').split(',')[2]
             conn_str = "tcp://" + publish_obj.host + ":" + publish_obj.port
             publish_obj.socket.connect(conn_str)
             print("ZK node connected")
@@ -189,9 +192,9 @@ def subscribe_node_conn(subscriber_obj):
 
     if up_status:
         data1, stat = subscriber_obj.zookeeper.get(subscriber_obj.zk_path_type1)
-        subscriber_obj.port1 = data1.decode('utf-8').split(',')[1]
+        subscriber_obj.port1, subscriber_obj.address = data1.decode('utf-8').split(',')[1], data1.decode('utf-8').split(',')[2]
         data2, stat = subscriber_obj.zookeeper.get(subscriber_obj.zk_path_type2)
-        subscriber_obj.port2 = data2.decode('utf-8').split(',')[1]
+        subscriber_obj.port2, subscriber_obj.address = data2.decode('utf-8').split(',')[1], data2.decode('utf-8').split(',')[2]
         print("ZK node connected")
     else:
         print("ZK not available")
@@ -205,6 +208,7 @@ if __name__ == "__main__":
     try:
         broker.establish_broker()
     except KeyboardInterrupt:
+        broker.close_connection()
         broker.zookeeper.delete('/leader1/leadNode')
         broker.zookeeper.delete('/leader2/leadNode')
         print("Broker Node deleted")

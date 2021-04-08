@@ -41,20 +41,20 @@ class Subscriber:
             if event and event.type == "CHANGED":
                 print("TRAFFIC RE-ROUTED: {}".format(data))
                 data, stat = self.zookeeper.get(self.zk_path_type1)
-                self.port1 = data.decode('utf-8').split(',')[1]
+                self.port1, self.address = data.decode('utf-8').split(',')[1], data.decode('utf-8').split(',')[2]
                 conn_str = "tcp://" + self.address + ":" + self.port1
                 self.socket.connect(conn_str)
-                print("Pulling data from: tcp://{}:{}".format(self.address, self.port1))
+                print("Pulling data from: tcp://{} on ports {} and {}".format(self.address, self.port1, self.port2))
 
         @self.zookeeper.DataWatch(self.zk_path_type2)
         def watch_node(data, stat, event):
             if event and event.type == "CHANGED":
                 print("TRAFFIC RE-ROUTED: {}".format(data))
                 data, stat = self.zookeeper.get(self.zk_path_type2)
-                self.port2 = data.decode('utf-8').split(',')[1]
+                self.port2, self.address = data.decode('utf-8').split(',')[1], data.decode('utf-8').split(',')[2]
                 conn_str = "tcp://" + self.address + ":" + self.port2
                 self.socket.connect(conn_str)
-                print("Pulling data from: tcp://{}:{}".format(self.address, self.port2))
+                print("Pulling data from: tcp://{} on ports {} and {}".format(self.address, self.port1, self.port2))
         for x in range(self.total_times_to_listen):
             self = filter_message(self)
             zipcode, temperature, sent_time = self.message.split(',')
