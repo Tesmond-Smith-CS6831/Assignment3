@@ -22,7 +22,8 @@ def register_sub(subscriber):
     subscriber.context = zmq.Context()
     subscriber.socket = subscriber.context.socket(zmq.SUB)
     subscriber.history_socket = subscriber.context.socket(zmq.SUB)
-    subscriber.socket.connect(f"tcp://{subscriber.address}:{subscriber.port}")
+    subscriber.socket.connect(f"tcp://{subscriber.address}:{subscriber.port1}")
+    subscriber.socket.connect(f"tcp://{subscriber.address}:{subscriber.port2}")
     subscriber.history_socket.connect(f"tcp://{subscriber.address}:{subscriber.history_port}")
     subscriber.socket.setsockopt_string(zmq.SUBSCRIBE, subscriber.zip_code)
     subscriber.history_socket.setsockopt_string(zmq.SUBSCRIBE, subscriber.zip_code)
@@ -47,8 +48,4 @@ def receive_history(subscriber, size):
     subscriber.history_socket.setsockopt_string(zmq.SUBSCRIBE, subscriber.zip_code)
     message = subscriber.socket.recv_string()
     zipcode, topic_temp, topic_size = message.split(",")
-    # print(zipcode + ", " + topic_temp + ", " + topic_size)
-    # if topic_size != size:
-    #     return None
-    # else:
     return topic_temp

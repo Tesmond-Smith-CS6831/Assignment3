@@ -8,7 +8,8 @@ from kazoo.client import KazooClient
 class Subscriber:
     def __init__(self, address, topic, time_to_listen, history_size, history = 2223):
         self.address = address
-        self.port = None
+        self.port1 = None
+        self.port2 = None
         self.total_temp = 0
         self.zip_code = topic
         self.total_times_to_listen = int(time_to_listen)
@@ -22,7 +23,8 @@ class Subscriber:
         self.socket = None
         self.output = []
         self.zookeeper = KazooClient(hosts='127.0.0.1:2181')
-        self.zk_path = '/leader/leadNode'
+        self.zk_path_type1 = '/leader1/leadNode'
+        self.zk_path_type2 = '/leader2/leadNode'
         self.zookeeper.start()
 
     def create_context(self):
@@ -32,17 +34,27 @@ class Subscriber:
         self = middleware.subscribe_node_conn(self)
 
     def get_message(self):
-        print("Pulling data from: tcp://{}:{}".format(self.address, self.port))
+        print("Pulling data from: tcp://{} on ports {} and {}".format(self.address, self.port1, self.port2))
 
-        @self.zookeeper.DataWatch(self.zk_path)
+        @self.zookeeper.DataWatch(self.zk_path_type1)
         def watch_node(data, stat, event):
             if event and event.type == "CHANGED":
-                print("data changed: {}".format(data))
-                data, stat = self.zookeeper.get(self.zk_path)
-                self.port = data.decode('utf-8').split(',')[1]
-                conn_str = "tcp://" + self.address + ":" + self.port
+                print("TRAFFIC RE-ROUTED: {}".format(data))
+                data, stat = self.zookeeper.get(self.zk_path_type1)
+                self.port1, self.address = data.decode('utf-8').split(',')[1], data.decode('utf-8').split(',')[2]
+                conn_str = "tcp://" + self.address + ":" + self.port1
                 self.socket.connect(conn_str)
-                print("Pulling data from: tcp://{}:{}".format(self.address, self.port))
+                print("Pulling data from: tcp://{} on ports {} and {}".format(self.address, self.port1, self.port2))
+
+        @self.zookeeper.DataWatch(self.zk_path_type2)
+        def watch_node(data, stat, event):
+            if event and event.type == "CHANGED":
+                print("TRAFFIC RE-ROUTED: {}".format(data))
+                data, stat = self.zookeeper.get(self.zk_path_type2)
+                self.port2, self.address = data.decode('utf-8').split(',')[1], data.decode('utf-8').split(',')[2]
+                conn_str = "tcp://" + self.address + ":" + self.port2
+                self.socket.connect(conn_str)
+                print("Pulling data from: tcp://{} on ports {} and {}".format(self.address, self.port1, self.port2))
         for x in range(self.total_times_to_listen):
             self = filter_message(self)
             zipcode, temperature, sent_time = self.message.split(',')
