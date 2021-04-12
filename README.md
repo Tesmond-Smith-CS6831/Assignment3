@@ -61,16 +61,17 @@ Tested using Mininet and Wireshark.
 
 To ensure our code matched the necessary use cases (approach #1 and approach #2), we ran simulations of the expected I/O rates and roundtrip packet times for our cases. These were captured by running wireshark in tandem with mininet to monitor all traffic and acknowledgements through our middleware.
 
-Similar to what we witnessed in Assignment #1, we saw the expected performance boost from approach #1 where publishers disseminated topic information without dedication to a specific topic resulted in correct data responses from one host to another in a matter of seconds, while with approach #2, where publishers disseminated dedication topic information, successful delivery of the topic data to interested subscribers was almost instantaneous.
+Similar to what we witnessed in Assignment #1 and #2, we saw the expected performance boost from approach #1 where publishers disseminated topic information without dedication to a specific topic resulted in correct data responses from one host to another in a matter of seconds, while with approach #2, where publishers disseminated dedication topic information, successful delivery of the topic data to interested subscribers was almost instantaneous.
 
-Regarding the new fault-tolerant broker setup with Zookeeper, functionality is successfully maintained even in the instance of nodes being killed off. However, unlike Assignment 1 where we had no set fault tolerance at the broker level and therefore all communication stopped until another middleware was spun up, we see an expected drop in communication when the node get killed off, but immediately regains request-response functionality thanks to the data watcher functionality:
+From our graphs, I did not notice any notable performance changes from the addition of Topic Ownership nor History when it came to I/O flow and Roundtrip Times. This is not too surprising because any noticeable changes wouldn't appear in RTT nor IO data; however, if we were monitoring Topic I/O, we would likely see a lower flow because Ownership would ensure one topic publisher would publish data at a time.
 
-![IO Averages](./graphs/IOAverages.png)
-The Node was killed at 26s, and only too 2s to instantiate the connection to the new broker node, and disseminate the new broker port info.
+Regarding the new fault-tolerant broker setup with loadbalanced Broker nodes, functionality is successfully maintained even in the instance of nodes being killed off, and we can see the load being distributed across nodes. Since we chose to load balance across publisher types, we see the clear divide of traffic in our I/O and RTT graphs below:
 
-Following this trend, we don't notice any lapses in roundtrip time in the request/response cycles when the broker node was killed off either:
+![IO Averages](./graphs/IOAssignment3.png)
+During the run, I alternated adding in Broker nodes, publishes, and subscribers. As the graph above shows, there was no interruption in traffic when Broker nodes entered and left our system. 
 
-![ReqResp](graphs/RRTimeZookeeper.png)
- 
+As for the load balancing, the RTT graph below shows the traffic over a port used only for Type 2 publishers:
 
+![ReqResp](graphs/RTTLoadbalancedBroker.png)
 
+Despite the pub/sub flow constantly sending/recieving data; this broker node is only active when handling request/responses for nodes sending type 2 data. This shows that the load is distributed between nodes, because we are not seeing any type 1 data flowing through this node.
