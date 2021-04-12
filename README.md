@@ -1,19 +1,20 @@
-# Assignment 2
+# Assignment 3
 Developed by: Rick Tesmond and Jordan Smith
 
 ## Overview
-In order to achieve anonymity between publishers and subscribers we have updated the source code to mask all ZeroMQ related function calls into a utility layer. An additional feature added to this assignment is the direct ability to disseminate from the publisher to the subscriber without the broker; this functioinality was misssing from the prior assignment. The middleware class has been updated and maintains the ability to act as a broker/proxy between publishers publishing topics, and subscribers consuming topics. The additional feature to this assignment is the implemntation of Zookeeper. This serves as node management system that handles all interactions between access from the middlware brokers to publishers and subscribers. 
+Building on Assignment 2, Assignment 3 not includes ownership strength on topic publishing, load balancing of Broker nodes, and a maintained history of topics.
 
-To satisfy the requirements of the assiment we have updated the source code to remove:
-- ZeroMQ functionality from the publishers and subscribers into an anonymous functions
-- Implemeneted the Zookeper sever node management system that handles middleware broker nodes/objects: 
-   * Handles connection ports
-   * information dissemination
-   * leader election
+To satisfy the requirements of this assignment:
+* Utilized Zookeeper for load balancing and strength tracking, and ZMQ for history negotiation
+* Load Balancing nodes based on Topic type (publisher type 1 or type 2), with each broker node providing redundency for both types.
+  * Replica nodes are created and elected to lead node in-case of singular node failure
+    
+* Ownership Strength is tracked using the 1-based highest power, where publishers who do not have ownership are suspended until they can become the owner.
+* History QoS is compliant with the assignment requirements and can provide access to historic samples of a given topic.
 
 ## Running the Program
-System requirements: Ubuntu 20.04, ZMQ, Python3, Mininet, Xterm, Zookeper, Wireshark \
-Git clone URL: https://github.com/Tesmond-Smith-CS6831/Assignment2
+System requirements: Ubuntu 20.04, ZMQ, Python3, Mininet, Xterm, Zookeeper, Wireshark \
+Git clone URL: https://github.com/Tesmond-Smith-CS6831/Assignment3.git
 
 **Ensure your mininet infrastructure and Zookeeper server can speak with each other**
 
@@ -24,15 +25,17 @@ Git clone URL: https://github.com/Tesmond-Smith-CS6831/Assignment2
     * If this did not occur, make sure you have mininet and xterm installed.
     
 3. Spin up the middleware file on any of the host terminals by utilize the command line input: python3 middleware.py'
-    * Zookeeper handles all leadership elections in which the middleware broker objects, have their own unique access ports 
+    * Zookeeper handles all leadership elections in which the middleware broker objects, have their own unique access ports
+    * Middleware also handles leader replication and load balanced fault tolerance.
     
-4. Spin up the Publishers on other hosts using 'python3 publisher.py ip-of-broker'
+4. Spin up the Publishers on other hosts using 'python3 publisher.py ip-of-broker history-to-keep'
    * Example: 'python3 publisher.py 10.0.0.5 1/2 ZipCode(e.g. 23666)'
    * The publisher script can take three commandline arguments: 
       * ip-of-broker: IP address of the broker. Defaults to 'localhost'
       * publisher-flag: This input allows either input 1 - allows publishing of any topic vs. input 2 - publishing of singular topic. Defaults to 1
       * topic-to-publish: if input 2 is chosen, input for the specific topic to publish on. Defaults to 10001
           * Example: "python3 publisher.py localhost 2 45208"
+      * history-to-keep: integer value of history samples to keep. Defaults to 10.
     
 5. Spin up the Subscriber on other hosts using 'python3 subscriber.py ip-of-broker topic-zip'
    * Example: 'python3 subscriber.py 10.0.0.5 53715 10' 
