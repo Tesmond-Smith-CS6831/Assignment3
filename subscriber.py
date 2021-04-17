@@ -54,9 +54,12 @@ class Subscriber:
                 self.port2, self.address = data.decode('utf-8').split(',')[1], data.decode('utf-8').split(',')[2]
                 conn_str = "tcp://" + self.address + ":" + self.port2
                 self.socket.connect(conn_str)
+                self.socket.setsockopt_string(zmq.SUBSCRIBE, self.zip_code)
                 print("Pulling data from: tcp://{} on ports {} and {}".format(self.address, self.port1, self.port2))
         for x in range(self.total_times_to_listen):
+            print(self.total_times_to_listen)
             self = filter_message(self)
+            print(self.message)
             zipcode, temperature, sent_time = self.message.split(',')
             self.total_temp += int(temperature)
             self.listen_counter += 1

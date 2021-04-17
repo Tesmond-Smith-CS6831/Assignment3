@@ -49,7 +49,7 @@ class Broker:
             used_ports.append(port2)
 
             node_name = "{}{}".format(self.zk_path, "node"+str(i))
-            node_info = bytes("{},{},{}".format(port1, port2, self.ip_addr).encode("utf-8"))
+            node_info = bytes("{},{},{}".format(port1, port2, self.ip_addr).encode('utf-8'))
             if self.zookeeper.exists(node_name):
                 pass
             else:
@@ -73,18 +73,18 @@ class Broker:
 
         if not self.zookeeper.exists(leader_type1_path):
             self.zookeeper.ensure_path(self.zk_type1_leader_path)
-            self.zookeeper.create(leader_type1_path, bytes(self.leader1[0].encode("utf-8")), None, ephemeral=True)
+            self.zookeeper.create(leader_type1_path, bytes(self.leader1.encode('utf-8')), None, ephemeral=True)
         else:
             self.zookeeper.ensure_path(self.zk_type1_leader_path)
-            self.zookeeper.set(leader_type1_path, self.leader1[0])
+            self.zookeeper.set(leader_type1_path, bytes(self.leader1.encode('utf-8')))
         print("New Type 1 Broker Node added to pool: {}".format(self.leader1))
 
         if not self.zookeeper.exists(leader_type2_path):
             self.zookeeper.ensure_path(self.zk_type2_leader_path)
-            self.zookeeper.create(leader_type2_path, bytes(self.leader2[0].encode("utf-8")), None, ephemeral=True)
+            self.zookeeper.create(leader_type2_path, bytes(self.leader2.encode('utf-8')), None, ephemeral=True)
         else:
             self.zookeeper.ensure_path(self.zk_type2_leader_path)
-            self.zookeeper.set(leader_type2_path, self.leader2[0])
+            self.zookeeper.set(leader_type2_path, bytes(self.leader2.encode('utf-8')))
         print("New Type 2 Broker Node added to pool: {}".format(self.leader2))
 
     def create_loadbalance_replicas(self):
@@ -96,12 +96,12 @@ class Broker:
         if self.zookeeper.exists(replica_node_type1):
             self.zookeeper.delete(replica_node_type1)
         self.zookeeper.ensure_path(self.replica_path)
-        self.zookeeper.create(replica_node_type1, bytes(self.leader1[0].encode("utf-8")), None, ephemeral=True)
+        self.zookeeper.create(replica_node_type1, bytes(self.leader1[0].encode('utf-8')), None, ephemeral=True)
 
         if self.zookeeper.exists(replica_node_type2):
             self.zookeeper.delete(replica_node_type2)
         self.zookeeper.ensure_path(self.replica_path)
-        self.zookeeper.create(replica_node_type2, bytes(self.leader2[0].encode("utf-8")), None, ephemeral=True)
+        self.zookeeper.create(replica_node_type2, bytes(self.leader2[0].encode('utf-8')), None, ephemeral=True)
 
         print("... Replication Complete")
 
@@ -121,9 +121,9 @@ class Broker:
                     self.leader1 = self.zookeeper.get(replica_node_type1)
                     self.zookeeper.ensure_path(self.zk_type1_leader_path)
                     try:
-                        self.zookeeper.set(leader_path, self.leader1[0])
+                        self.zookeeper.set(leader_path, self.leader1)
                     except:
-                        self.zookeeper.create(leader_path, self.leader1[0])
+                        self.zookeeper.create(leader_path, bytes(self.leader1))
 
             @self.zookeeper.DataWatch(self.zk_type2_leader_path+"leadNode")
             def watch_node(data, stat, event):
@@ -134,22 +134,25 @@ class Broker:
                     self.leader2 = self.zookeeper.get(replica_node_type2)
                     self.zookeeper.ensure_path(self.zk_type2_leader_path)
                     try:
-                        self.zookeeper.set(leader_path, self.leader2[0])
+                        self.zookeeper.set(leader_path, self.leader2)
                     except:
-                        self.zookeeper.create(leader_path, self.leader2[0])
+                        self.zookeeper.create(leader_path, bytes(self.leader2))
         except NodeExistsError:
             pass
         print("Loadbalanced Broker established. RUNNING.")
-        leader1_connection_addr = self.leader1[0]
-        leader2_connection_addr = self.leader2[0]
+        leader1_connection_addr = self.leader1
+        leader2_connection_addr = self.leader2
         self.context = zmq.Context()
         self.frontend_socket = self.context.socket(zmq.XSUB)
         self.backend_socket = self.context.socket(zmq.XPUB)
-        self.frontend_socket.bind(f"tcp://*:{leader1_connection_addr[0]}")
-        self.backend_socket.bind(f"tcp://*:{leader1_connection_addr[1]}")
+        self.frontend_socket.connect(f"tcp://{leader1_connection_addr.split(',')[2]}:{leader1_connection_addr.split(',')[0]}")
+        self.backend_socket.connect(f"tcp://{leader1_connection_addr.split(',')[2]}:{leader1_connection_addr.split(',')[1]}")
 
-        self.frontend_socket.bind(f"tcp://*:{leader2_connection_addr[0]}")
-        self.backend_socket.bind(f"tcp://*:{leader2_connection_addr[1]}")
+        self.frontend_socket.connect(f"tcp://{leader2_connection_addr.split(',')[2]}:{leader2_connection_addr.split(',')[0]}")
+        self.backend_socket.connect(f"tcp://{leader2_connection_addr.split(',')[2]}:{leader2_connection_addr.split(',')[1]}")
+        print(leader2_connection_addr.split(',')[2])
+        print(leader2_connection_addr.split(',')[0])
+        print(leader2_connection_addr.split(',')[1])
         zmq.proxy(self.frontend_socket, self.backend_socket)
 
     def close_connection(self):
@@ -177,7 +180,10 @@ def publish_node_conn(publish_obj):
 
         if up_status:
             data, stat = publish_obj.zookeeper.get(publish_obj.zk_path_type2)
+            print(data)
             publish_obj.port, publish_obj.host = data.decode('utf-8').split(',')[0], data.decode('utf-8').split(',')[2]
+            print(publish_obj.host)
+            print(publish_obj.port)
             conn_str = "tcp://" + publish_obj.host + ":" + publish_obj.port
             publish_obj.socket.connect(conn_str)
             print("ZK node connected")
@@ -194,6 +200,7 @@ def subscribe_node_conn(subscriber_obj):
         data1, stat = subscriber_obj.zookeeper.get(subscriber_obj.zk_path_type1)
         subscriber_obj.port1, subscriber_obj.address = data1.decode('utf-8').split(',')[1], data1.decode('utf-8').split(',')[2]
         data2, stat = subscriber_obj.zookeeper.get(subscriber_obj.zk_path_type2)
+        print(data2)
         subscriber_obj.port2, subscriber_obj.address = data2.decode('utf-8').split(',')[1], data2.decode('utf-8').split(',')[2]
         print("ZK node connected")
     else:

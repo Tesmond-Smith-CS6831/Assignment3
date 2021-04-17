@@ -31,9 +31,8 @@ def register_sub(subscriber):
 
 
 def filter_message(subscriber):
-    subscriber.socket.setsockopt_string(zmq.SUBSCRIBE, subscriber.zip_code)
-    subscriber.socket.setsockopt_string(zmq.SUBSCRIBE, subscriber.zip_code)
     subscriber.message = subscriber.socket.recv_string()
+    print("Got Message")
     return subscriber
 
 
