@@ -73,7 +73,7 @@ class Broker:
 
         if not self.zookeeper.exists(leader_type1_path):
             self.zookeeper.ensure_path(self.zk_type1_leader_path)
-            self.zookeeper.create(leader_type1_path, self.leader1[0], None, ephemeral=True)
+            self.zookeeper.create(leader_type1_path, bytes(self.leader1[0].encode("utf-8")), None, ephemeral=True)
         else:
             self.zookeeper.ensure_path(self.zk_type1_leader_path)
             self.zookeeper.set(leader_type1_path, self.leader1[0])
@@ -81,7 +81,7 @@ class Broker:
 
         if not self.zookeeper.exists(leader_type2_path):
             self.zookeeper.ensure_path(self.zk_type2_leader_path)
-            self.zookeeper.create(leader_type2_path, self.leader2[0], None, ephemeral=True)
+            self.zookeeper.create(leader_type2_path, bytes(self.leader2[0].encode("utf-8")), None, ephemeral=True)
         else:
             self.zookeeper.ensure_path(self.zk_type2_leader_path)
             self.zookeeper.set(leader_type2_path, self.leader2[0])
@@ -96,12 +96,12 @@ class Broker:
         if self.zookeeper.exists(replica_node_type1):
             self.zookeeper.delete(replica_node_type1)
         self.zookeeper.ensure_path(self.replica_path)
-        self.zookeeper.create(replica_node_type1, self.leader1[0], None, ephemeral=True)
+        self.zookeeper.create(replica_node_type1, bytes(self.leader1[0].encode("utf-8")), None, ephemeral=True)
 
         if self.zookeeper.exists(replica_node_type2):
             self.zookeeper.delete(replica_node_type2)
         self.zookeeper.ensure_path(self.replica_path)
-        self.zookeeper.create(replica_node_type2, self.leader2[0], None, ephemeral=True)
+        self.zookeeper.create(replica_node_type2, bytes(self.leader2[0].encode("utf-8")), None, ephemeral=True)
 
         print("... Replication Complete")
 
@@ -140,8 +140,8 @@ class Broker:
         except NodeExistsError:
             pass
         print("Loadbalanced Broker established. RUNNING.")
-        leader1_connection_addr = self.leader1[0].decode('utf-8').split(',')
-        leader2_connection_addr = self.leader2[0].decode('utf-8').split(',')
+        leader1_connection_addr = self.leader1[0]
+        leader2_connection_addr = self.leader2[0]
         self.context = zmq.Context()
         self.frontend_socket = self.context.socket(zmq.XSUB)
         self.backend_socket = self.context.socket(zmq.XPUB)
