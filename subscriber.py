@@ -6,7 +6,7 @@ from kazoo.client import KazooClient
 
 
 class Subscriber:
-    def __init__(self, address, topic, time_to_listen, history_size, history = 2223):
+    def __init__(self, address, topic, time_to_listen, history_size):
         self.address = address
         self.port1 = None
         self.port2 = None
@@ -15,7 +15,7 @@ class Subscriber:
         self.total_times_to_listen = int(time_to_listen)
         self.listen_counter = 0
         self.history_socket = None
-        self.history_port = history
+        self.history_port = 2223
         self.history_size = int(history_size)
         self.history_array = []
         self.message = None
@@ -57,7 +57,7 @@ class Subscriber:
                 print("Pulling data from: tcp://{} on ports {} and {}".format(self.address, self.port1, self.port2))
         for x in range(self.total_times_to_listen):
             self = filter_message(self)
-            zipcode, temperature, sent_time = self.message.split(',')
+            zipcode, temperature, sent_time, size = self.message.split(',')
             self.total_temp += int(temperature)
             self.listen_counter += 1
             _sent_dt = datetime.datetime.strptime(sent_time, "%m/%d/%Y %H:%M:%S.%f")
@@ -74,11 +74,14 @@ class Subscriber:
     def get_published_history(self):
         for i in range(int(self.history_size)):
             message = receive_history(self, self.history_size)
-            self.history_array.append(message)
-        if len(self.history_array) != self.history_size:
+            if message is None:
+                break;
+            else:
+                self.history_array.append(message)
+        if len(self.history_array) != int(self.history_size):
             print("No History was received, history size sent by publisher is of a different size")
             return
-        for i in range(len(self.history_array)):
+        else:
             print("Temperature history is {}".format(self.history_array))
 
 

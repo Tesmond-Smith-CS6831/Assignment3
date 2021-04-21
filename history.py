@@ -20,8 +20,7 @@ class History:
         self.back_end_socket.bind(f"tcp://*:{self.back_end_port}")
 
     def maintain_history(self):
-        while True:
-            zmq.proxy(self.front_end_socket, self.back_end_socket)
+        zmq.proxy(self.front_end_socket, self.back_end_socket)
 
 
 if __name__ == "__main__":

@@ -10,7 +10,6 @@ def register_pub():
 
 
 def pub_send(publisher, message, proxy=2):
-    zipcode, temperature, date_time = message.split(',')
     if proxy == 1:
         publisher.socket.send_string(message)
     else:
@@ -47,5 +46,8 @@ def send_history(publisher, message):
 def receive_history(subscriber, size):
     subscriber.history_socket.setsockopt_string(zmq.SUBSCRIBE, subscriber.zip_code)
     message = subscriber.socket.recv_string()
-    zipcode, topic_temp, topic_size = message.split(",")
-    return topic_temp
+    zipcode, topic_temp, topic_time, topic_size = message.split(",")
+    if int(size) == int(topic_size):
+        return topic_temp
+    else:
+        return None

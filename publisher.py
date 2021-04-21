@@ -47,7 +47,7 @@ class Publisher:
                 zipcode = randrange(1, 100000)
                 temperature = randrange(-80, 135)
                 date_time = datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S.%f")
-                concat_message = str(zipcode) + "," + str(temperature) + "," + date_time
+                concat_message = str(zipcode) + "," + str(temperature) + "," + date_time + "," + str(self.history_to_keep)
                 self.update_published_history(concat_message)
                 pub_send(self, concat_message, how_to_publish)
                 for i in range(len(self.published_history)):
@@ -77,8 +77,9 @@ class Publisher:
                 zipcode = self.zip_code
                 temperature = randrange(-80, 135)
                 date_time = datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S.%f")
-                concat_message = str(zipcode) + "," + str(temperature) + "," + date_time
+                concat_message = str(zipcode) + "," + str(temperature) + "," + date_time + "," + str(self.history_to_keep)
                 pub_send(self, concat_message)
+                self.update_published_history(concat_message)
                 for i in range(len(self.published_history)):
                     new_message = str(zipcode) + "," + str(temperature) + "," + str(self.history_to_keep)
                     send_history(self, new_message)
